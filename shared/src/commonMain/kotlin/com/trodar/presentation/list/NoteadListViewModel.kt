@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.trodar.domain.model.Folder
 import com.trodar.domain.model.FolderOrNote
 import com.trodar.domain.model.Note
+import com.trodar.domain.model.AppTheme
 import com.trodar.domain.repository.NoteadRepository
+import com.trodar.domain.repository.SettingsRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -13,8 +15,18 @@ import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NoteadListViewModel(
-    private val repository: NoteadRepository
+    private val repository: NoteadRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
+
+    val currentTheme: StateFlow<AppTheme> = settingsRepository.appTheme
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.LIGHT)
+
+    fun setTheme(theme: AppTheme) {
+        viewModelScope.launch {
+            settingsRepository.setAppTheme(theme)
+        }
+    }
 
     private val _folderStack = MutableStateFlow<List<Pair<Long?, String>>>(listOf(null to "Блокнот"))
 

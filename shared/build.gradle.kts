@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.serialization)
 }
 
 kotlin {
@@ -62,6 +63,9 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.richeditorCompose)
             implementation(libs.compose.material.icons.extended)
+            implementation(libs.datastore)
+            implementation(libs.datastore.core)
+            implementation(libs.kotlinx.serialization.protobuf)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

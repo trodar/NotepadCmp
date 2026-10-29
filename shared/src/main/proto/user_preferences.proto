@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+option java_package = "com.trodar.notead.proto";
+option java_multiple_files = true;
+
+enum AppThemeProto {
+  THEME_LIGHT = 0;
+  THEME_DARK = 1;
+  THEME_PINK = 2;
+  THEME_PURPLE = 3;
+  THEME_BLUE = 4;
+}
+
+message UserPreferences {
+  AppThemeProto theme = 1;
+}

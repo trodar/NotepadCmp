@@ -33,6 +33,8 @@ fun initKoin(appDeclaration: KoinAppDeclaration = {}): KoinApplication {
         modules(
             platformDatabaseModule,
             sharedDatabaseModule,
+            platformDataStoreModule,
+            settingsModule,
             appModule
         )
     }
