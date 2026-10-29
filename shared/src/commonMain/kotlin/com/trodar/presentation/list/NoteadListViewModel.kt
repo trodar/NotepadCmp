@@ -16,13 +16,21 @@ class NoteadListViewModel(
     private val repository: NoteadRepository
 ) : ViewModel() {
 
-    private val _parentId = MutableStateFlow<Long?>(null)
-    val parentId: StateFlow<Long?> = _parentId.asStateFlow()
+    private val _folderStack = MutableStateFlow<List<Pair<Long?, String>>>(listOf(null to "Блокнот"))
 
-    private val _currentFolderName = MutableStateFlow<String>("Блокнот")
-    val currentFolderName: StateFlow<String> = _currentFolderName.asStateFlow()
+    val parentId: StateFlow<Long?> = _folderStack
+        .map { it.last().first }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val items: StateFlow<List<FolderOrNote>> = _parentId
+    val currentFolderName: StateFlow<String> = _folderStack
+        .map { it.last().second }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "Блокнот")
+
+    val canNavigateBack: StateFlow<Boolean> = _folderStack
+        .map { it.size > 1 }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    val items: StateFlow<List<FolderOrNote>> = parentId
         .flatMapLatest { id ->
             repository.getFoldersAndNotes(id)
         }
@@ -33,15 +41,20 @@ class NoteadListViewModel(
         )
 
     fun navigateToFolder(folderId: Long?, folderName: String) {
-        _parentId.value = folderId
-        _currentFolderName.value = folderName
+        _folderStack.update { stack -> stack + (folderId to folderName) }
+    }
+
+    fun navigateBack() {
+        if (_folderStack.value.size > 1) {
+            _folderStack.update { stack -> stack.dropLast(1) }
+        }
     }
 
     fun createFolder(name: String) {
         viewModelScope.launch {
             val now = Clock.System.now().toEpochMilliseconds()
             val folder = Folder(
-                parentId = _parentId.value,
+                parentId = parentId.value,
                 name = name,
                 createdAt = now,
                 updatedAt = now
@@ -53,7 +66,7 @@ class NoteadListViewModel(
     suspend fun createNewNote(): Long {
         val now = Clock.System.now().toEpochMilliseconds()
         val note = Note(
-            folderId = _parentId.value,
+            folderId = parentId.value,
             title = "",
             createdAt = now,
             updatedAt = now

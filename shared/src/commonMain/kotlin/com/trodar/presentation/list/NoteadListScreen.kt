@@ -25,7 +25,7 @@ fun NoteadListScreen(
     onNavigateToNote: (Long) -> Unit
 ) {
     val items by viewModel.items.collectAsState()
-    val parentId by viewModel.parentId.collectAsState()
+    val canNavigateBack by viewModel.canNavigateBack.collectAsState()
     val currentFolderName by viewModel.currentFolderName.collectAsState()
 
     var showCreateFolderDialog by remember { mutableStateOf(false) }
@@ -37,9 +37,9 @@ fun NoteadListScreen(
             TopAppBar(
                 title = { Text(currentFolderName) },
                 navigationIcon = {
-                    if (parentId != null) {
+                    if (canNavigateBack) {
                         IconButton(onClick = {
-                            viewModel.navigateToFolder(null, "Блокнот")
+                            viewModel.navigateBack()
                         }) {
                             Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                         }

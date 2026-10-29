@@ -5,11 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.trodar.domain.model.Note
 import com.trodar.domain.repository.NoteadRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
@@ -65,16 +67,18 @@ class NoteEditorViewModel(
     }
 
     fun saveNow() {
+        val currentNote = _note.value ?: Note(
+            folderId = folderId,
+            createdAt = Clock.System.now().toEpochMilliseconds(),
+            updatedAt = Clock.System.now().toEpochMilliseconds()
+        )
+        val currentContent = _content.value
         viewModelScope.launch {
-            val currentNote = _note.value ?: Note(
-                folderId = folderId,
-                createdAt = Clock.System.now().toEpochMilliseconds(),
-                updatedAt = Clock.System.now().toEpochMilliseconds()
-            )
-            val currentContent = _content.value
-            val savedId = repository.saveNoteWithContent(currentNote, currentContent)
-            if (currentNote.id == 0L) {
-                _note.value = repository.getNoteWithText(savedId)?.note
+            withContext(NonCancellable) {
+                val savedId = repository.saveNoteWithContent(currentNote, currentContent)
+                if (currentNote.id == 0L) {
+                    _note.value = repository.getNoteWithText(savedId)?.note
+                }
             }
         }
     }

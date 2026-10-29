@@ -24,8 +24,10 @@ fun NoteEditorScreen(
     var isInitialized by remember { mutableStateOf(false) }
 
     LaunchedEffect(content) {
-        if (!isInitialized && content.isNotEmpty()) {
-            richTextState.setHtml(content)
+        if (!isInitialized) {
+            if (content.isNotEmpty()) {
+                richTextState.setHtml(content)
+            }
             isInitialized = true
         }
     }

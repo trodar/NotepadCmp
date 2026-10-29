@@ -10,8 +10,12 @@ import com.trodar.domain.model.FolderOrNote
 import com.trodar.domain.model.Note
 import com.trodar.domain.model.NoteWithText
 import com.trodar.domain.repository.NoteadRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 class NoteadRepositoryImpl(
     private val folderDao: FolderDao,
@@ -20,43 +24,43 @@ class NoteadRepositoryImpl(
 ) : NoteadRepository {
 
     override fun getFoldersAndNotes(parentId: Long?): Flow<List<FolderOrNote>> {
-        return noteadDao.getFoldersAndNotes(parentId).map { list ->
-            list.map { it.toDomain() }
-        }
+        return noteadDao.getFoldersAndNotes(parentId)
+            .map { list -> list.map { it.toDomain() } }
+            .flowOn(Dispatchers.IO)
     }
 
     override fun getAllFoldersAndNotes(): Flow<List<FolderOrNote>> {
-        return noteadDao.getAllFoldersAndNotes().map { list ->
-            list.map { it.toDomain() }
-        }
+        return noteadDao.getAllFoldersAndNotes()
+            .map { list -> list.map { it.toDomain() } }
+            .flowOn(Dispatchers.IO)
     }
 
-    override suspend fun getFolderById(id: Long): Folder? {
-        return folderDao.getFolderById(id)?.toDomain()
+    override suspend fun getFolderById(id: Long): Folder? = withContext(Dispatchers.IO) {
+        folderDao.getFolderById(id)?.toDomain()
     }
 
-    override suspend fun getNoteWithText(noteId: Long): NoteWithText? {
-        val noteEntity = noteDao.getNoteById(noteId) ?: return null
+    override suspend fun getNoteWithText(noteId: Long): NoteWithText? = withContext(Dispatchers.IO) {
+        val noteEntity = noteDao.getNoteById(noteId) ?: return@withContext null
         val textEntity = noteDao.getNoteText(noteId)
-        return NoteWithText(
+        NoteWithText(
             note = noteEntity.toDomain(),
             content = textEntity?.content ?: ""
         )
     }
 
-    override suspend fun upsertFolder(folder: Folder): Long {
-        return folderDao.upsertFolder(folder.toEntity())
+    override suspend fun upsertFolder(folder: Folder): Long = withContext(Dispatchers.IO) {
+        folderDao.upsertFolder(folder.toEntity())
     }
 
-    override suspend fun deleteFolder(folderId: Long) {
+    override suspend fun deleteFolder(folderId: Long) = withContext(Dispatchers.IO) {
         folderDao.deleteFolderById(folderId)
     }
 
-    override suspend fun saveNoteWithContent(note: Note, content: String): Long {
-        return noteDao.saveNoteWithContent(note.toEntity(), content)
+    override suspend fun saveNoteWithContent(note: Note, content: String): Long = withContext(Dispatchers.IO) {
+        noteDao.saveNoteWithContent(note.toEntity(), content)
     }
 
-    override suspend fun deleteNote(noteId: Long) {
+    override suspend fun deleteNote(noteId: Long) = withContext(Dispatchers.IO) {
         noteDao.deleteNoteById(noteId)
     }
 }
