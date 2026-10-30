@@ -25,12 +25,20 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun NoteadListScreen(
     viewModel: NoteadListViewModel = koinViewModel<NoteadListViewModel>(),
-    onNavigateToNote: (Long) -> Unit
+    onNavigateToNote: (Long) -> Unit,
+    onInitialDataLoaded: () -> Unit = {}
 ) {
     val items by viewModel.items.collectAsState()
+    val isInitialDataLoaded by viewModel.isInitialDataLoaded.collectAsState()
     val canNavigateBack by viewModel.canNavigateBack.collectAsState()
     val currentFolderName by viewModel.currentFolderName.collectAsState()
     val currentTheme by viewModel.currentTheme.collectAsState()
+
+    LaunchedEffect(isInitialDataLoaded) {
+        if (isInitialDataLoaded) {
+            onInitialDataLoaded()
+        }
+    }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var showCreateFolderDialog by remember { mutableStateOf(false) }

@@ -3,9 +3,13 @@ package com.trodar.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation3.runtime.EntryProviderScope
@@ -15,13 +19,26 @@ import com.trodar.domain.model.AppTheme
 import com.trodar.domain.repository.SettingsRepository
 import com.trodar.presentation.editor.NoteEditorScreen
 import com.trodar.presentation.list.NoteadListScreen
+import com.trodar.presentation.splash.SplashScreen
 import com.trodar.presentation.theme.NoteadTheme
+import kotlinx.coroutines.delay
 import org.koin.compose.koinInject
 
 @Composable
 fun NavHost() {
     val settingsRepository: SettingsRepository = koinInject()
     val currentTheme by settingsRepository.appTheme.collectAsState(initial = AppTheme.LIGHT)
+
+    var isDataLoaded by remember { mutableStateOf(false) }
+    var showSplash by remember { mutableStateOf(true) }
+
+    LaunchedEffect(isDataLoaded) {
+        if (isDataLoaded) {
+            withFrameNanos { }
+            delay(50)
+            showSplash = false
+        }
+    }
 
     NoteadTheme(appTheme = currentTheme) {
         Box(
@@ -45,7 +62,8 @@ fun NavHost() {
             val entryProvider = entryProvider {
                 screens(
                     navigator = navigator,
-                    onBack = { navigator.goBack() }
+                    onBack = { navigator.goBack() },
+                    onInitialDataLoaded = { isDataLoaded = true }
                 )
             }
 
@@ -58,6 +76,11 @@ fun NavHost() {
                     onBack = navigator::goBack,
                 )
             }
+
+            SplashScreen(
+                visible = showSplash,
+                modifier = Modifier.fillMaxSize()
+            )
         }
     }
 }
@@ -65,12 +88,14 @@ fun NavHost() {
 private fun EntryProviderScope<AppRoute>.screens(
     navigator: Navigator,
     onBack: () -> Unit,
+    onInitialDataLoaded: () -> Unit,
 ) {
     entry<NoteListRoute> {
         NoteadListScreen(
             onNavigateToNote = { noteId ->
                 navigator.add(NoteEditorRoute(noteId = noteId))
-            }
+            },
+            onInitialDataLoaded = onInitialDataLoaded
         )
     }
 

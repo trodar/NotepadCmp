@@ -42,9 +42,13 @@ class NoteadListViewModel(
         .map { it.size > 1 }
         .stateIn(viewModelScope, SharingStarted.Eagerly, false)
 
+    private val _isInitialDataLoaded = MutableStateFlow(false)
+    val isInitialDataLoaded: StateFlow<Boolean> = _isInitialDataLoaded.asStateFlow()
+
     val items: StateFlow<List<FolderOrNote>> = parentId
         .flatMapLatest { id ->
             repository.getFoldersAndNotes(id)
+                .onEach { _isInitialDataLoaded.value = true }
         }
         .stateIn(
             scope = viewModelScope,
