@@ -9,7 +9,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
-import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -22,34 +21,9 @@ fun NoteEditorScreen(
     onBack: () -> Unit
 ) {
     val note by viewModel.note.collectAsState()
-    val content by viewModel.content.collectAsState()
-
-    val richTextState = rememberRichTextState()
-    var isInitialized by remember { mutableStateOf(false) }
-
-    LaunchedEffect(content) {
-        if (!isInitialized) {
-            if (content.isNotEmpty()) {
-                richTextState.setHtml(content)
-            }
-            isInitialized = true
-        }
-    }
-
-    LaunchedEffect(richTextState.toHtml()) {
-        if (isInitialized) {
-            viewModel.onContentChanged(richTextState.toHtml())
-        }
-    }
-
-    // Auto-save on back or dispose
-    DisposableEffect(Unit) {
-        onDispose {
-            viewModel.saveNow()
-        }
-    }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             TopAppBar(
                 title = { Text(note?.title.takeIf { !it.isNullOrEmpty() } ?: "Запись") },
@@ -75,10 +49,11 @@ fun NoteEditorScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp)
+                .consumeWindowInsets(padding)
+                .padding(horizontal = 16.dp)
         ) {
             RichTextEditor(
-                state = richTextState,
+                state = viewModel.richTextState,
                 modifier = Modifier
                     .fillMaxSize()
                     .weight(1f)

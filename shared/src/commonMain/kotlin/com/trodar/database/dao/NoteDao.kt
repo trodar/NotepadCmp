@@ -47,7 +47,7 @@ interface NoteDao {
             .replace("&gt;", ">")
             .replace(Regex("\\s+"), " ")
             .trim()
-        val title = plainText.take(50)
+        val title = plainText.take(20)
         val currentTime = Clock.System.now().toEpochMilliseconds()
         val updatedNote = note.let {
             if (it.id == 0L) {

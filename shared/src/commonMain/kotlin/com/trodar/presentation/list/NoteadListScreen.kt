@@ -53,6 +53,7 @@ fun NoteadListScreen(
         }
     ) {
         Scaffold(
+            contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
                 TopAppBar(
                     title = { Text(currentFolderName) },
@@ -90,8 +91,9 @@ fun NoteadListScreen(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
+                    .consumeWindowInsets(padding)
                     .padding(horizontal = 16.dp),
+                contentPadding = padding,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(items, key = {
