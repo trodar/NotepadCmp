@@ -39,7 +39,14 @@ interface NoteDao {
     // 4. NoteEntity.title берется первые 50 символов из текста. обновляется при сохранении текста.
     @Transaction
     suspend fun saveNoteWithContent(note: NoteEntity, content: String): Long {
-        val plainText = content.replace(Regex("<[^>]*>"), "").trim()
+        val plainText = content
+            .replace(Regex("<[^>]*>"), "")
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace(Regex("\\s+"), " ")
+            .trim()
         val title = plainText.take(50)
         val currentTime = Clock.System.now().toEpochMilliseconds()
         val updatedNote = note.let {

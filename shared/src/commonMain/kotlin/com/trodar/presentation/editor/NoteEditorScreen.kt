@@ -10,11 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
+import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditorScreen(
-    viewModel: NoteEditorViewModel,
+    viewModel: NoteEditorViewModel = koinViewModel<NoteEditorViewModel>(),
     onBack: () -> Unit
 ) {
     val note by viewModel.note.collectAsState()

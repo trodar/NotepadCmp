@@ -76,8 +76,9 @@ class NoteEditorViewModel(
         viewModelScope.launch {
             withContext(NonCancellable) {
                 val savedId = repository.saveNoteWithContent(currentNote, currentContent)
-                if (currentNote.id == 0L) {
-                    _note.value = repository.getNoteWithText(savedId)?.note
+                val updatedNoteWithText = repository.getNoteWithText(savedId)
+                if (updatedNoteWithText != null) {
+                    _note.value = updatedNoteWithText.note
                 }
             }
         }

@@ -15,7 +15,7 @@ import org.koin.core.parameter.parametersOf
 
 sealed interface Screen {
     data object List : Screen
-    data class Editor(val noteId: Long, val folderId: Long?) : Screen
+    data class Editor(val noteId: Long, val folderId: Long? = null) : Screen
 }
 
 @Composable
@@ -29,20 +29,15 @@ fun App() {
 
         when (val screen = currentScreen) {
             is Screen.List -> {
-                val viewModel = koinViewModel<NoteadListViewModel>()
                 NoteadListScreen(
-                    viewModel = viewModel,
                     onNavigateToNote = { noteId ->
-                        currentScreen = Screen.Editor(noteId = noteId, folderId = viewModel.parentId.value)
+                        currentScreen = Screen.Editor(noteId = noteId)
                     }
                 )
             }
             is Screen.Editor -> {
-                val viewModel = koinViewModel<NoteEditorViewModel>(
-                    parameters = { parametersOf(screen.noteId, screen.folderId) }
-                )
                 NoteEditorScreen(
-                    viewModel = viewModel,
+                    viewModel = koinViewModel { parametersOf(screen.noteId, screen.folderId) },
                     onBack = {
                         currentScreen = Screen.List
                     }

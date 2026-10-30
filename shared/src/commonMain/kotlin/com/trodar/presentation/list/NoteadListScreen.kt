@@ -19,11 +19,12 @@ import androidx.compose.ui.unit.dp
 import com.trodar.domain.model.FolderOrNote
 import com.trodar.presentation.settings.SettingsDrawerContent
 import kotlinx.coroutines.launch
+import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteadListScreen(
-    viewModel: NoteadListViewModel,
+    viewModel: NoteadListViewModel = koinViewModel<NoteadListViewModel>(),
     onNavigateToNote: (Long) -> Unit
 ) {
     val items by viewModel.items.collectAsState()
@@ -117,7 +118,7 @@ fun NoteadListScreen(
                                     Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Text(
-                                        text = item.folder.name,
+                                        text = item.folder.name.ifBlank { "Без названия" },
                                         style = MaterialTheme.typography.titleMedium,
                                         modifier = Modifier.weight(1f)
                                     )
@@ -145,7 +146,7 @@ fun NoteadListScreen(
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = item.note.title.ifEmpty { "Без названия" },
+                                            text = item.note.title.ifBlank { "Без названия" },
                                             style = MaterialTheme.typography.titleMedium
                                         )
                                     }
