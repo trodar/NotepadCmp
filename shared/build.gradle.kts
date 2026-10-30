@@ -65,7 +65,11 @@ kotlin {
             implementation(libs.compose.material.icons.extended)
             implementation(libs.datastore)
             implementation(libs.datastore.core)
+            implementation(libs.kotlinx.serialization.core)
+            implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.serialization.protobuf)
+            implementation(libs.jetbrains.navigation3.ui)
+            implementation(libs.jetbrains.lifecycle.viewmodelNavigation3)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

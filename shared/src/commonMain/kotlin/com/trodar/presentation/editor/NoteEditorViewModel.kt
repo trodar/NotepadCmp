@@ -1,5 +1,6 @@
 package com.trodar.presentation.editor
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trodar.domain.model.Note
@@ -16,10 +17,14 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
 class NoteEditorViewModel(
-    private val repository: NoteadRepository,
-    private val noteId: Long,
-    private val folderId: Long?
+    private val savedStateHandle: SavedStateHandle,
+    noteId: Long?,
+    folderId: Long?,
+    private val repository: NoteadRepository
 ) : ViewModel() {
+
+    private val effectiveNoteId: Long = noteId ?: savedStateHandle.get<Long>("note_id") ?: 0L
+    private val effectiveFolderId: Long? = folderId ?: savedStateHandle.get<Long>("folder_id")
 
     private val _note = MutableStateFlow<Note?>(null)
     val note: StateFlow<Note?> = _note.asStateFlow()
@@ -30,13 +35,15 @@ class NoteEditorViewModel(
     private var autoSaveJob: Job? = null
 
     init {
+        savedStateHandle["note_id"] = effectiveNoteId
+        effectiveFolderId?.let { savedStateHandle["folder_id"] = it }
         loadNote()
     }
 
     private fun loadNote() {
         viewModelScope.launch {
-            if (noteId > 0) {
-                val noteWithText = repository.getNoteWithText(noteId)
+            if (effectiveNoteId > 0) {
+                val noteWithText = repository.getNoteWithText(effectiveNoteId)
                 if (noteWithText != null) {
                     _note.value = noteWithText.note
                     _content.value = noteWithText.content
@@ -44,7 +51,7 @@ class NoteEditorViewModel(
             } else {
                 val now = Clock.System.now().toEpochMilliseconds()
                 val newNote = Note(
-                    folderId = folderId,
+                    folderId = effectiveFolderId,
                     title = "",
                     createdAt = now,
                     updatedAt = now
@@ -68,7 +75,7 @@ class NoteEditorViewModel(
 
     fun saveNow() {
         val currentNote = _note.value ?: Note(
-            folderId = folderId,
+            folderId = effectiveFolderId,
             createdAt = Clock.System.now().toEpochMilliseconds(),
             updatedAt = Clock.System.now().toEpochMilliseconds()
         )

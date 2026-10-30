@@ -20,9 +20,10 @@ val appModule = module {
     viewModelOf(::NoteadListViewModel)
     viewModel { parameters ->
         NoteEditorViewModel(
-            repository = get(),
-            noteId = parameters.get(),
-            folderId = parameters.getOrNull()
+            savedStateHandle = get(),
+            noteId = parameters[0],
+            folderId = if (parameters.values.size > 1) parameters.get(1) else null,
+            repository = get()
         )
     }
 }

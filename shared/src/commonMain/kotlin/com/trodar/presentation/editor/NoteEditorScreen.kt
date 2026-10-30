@@ -11,11 +11,14 @@ import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import com.mohamedrejeb.richeditor.model.rememberRichTextState
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditorScreen(
-    viewModel: NoteEditorViewModel = koinViewModel<NoteEditorViewModel>(),
+    noteId: Long,
+    folderId: Long? = null,
+    viewModel: NoteEditorViewModel = koinViewModel(parameters = { parametersOf(noteId, folderId) }),
     onBack: () -> Unit
 ) {
     val note by viewModel.note.collectAsState()
