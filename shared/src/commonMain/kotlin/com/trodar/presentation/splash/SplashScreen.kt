@@ -10,11 +10,9 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import notead.shared.generated.resources.Res
@@ -26,6 +24,8 @@ fun SplashScreen(
     visible: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val logoPainter = painterResource(Res.drawable.logo)
+
     AnimatedVisibility(
         visible = visible,
         exit = fadeOut(animationSpec = tween(durationMillis = 400)),
@@ -34,17 +34,16 @@ fun SplashScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFFEF8E2))
+                .background(Color(0xFF282746))
                 .padding(32.dp),
             contentAlignment = Alignment.Center
         ) {
             Image(
-                painter = painterResource(Res.drawable.logo),
+                painter = logoPainter,
                 contentDescription = "App Logo",
                 modifier = Modifier
-                    .fillMaxWidth(0.7f)
+                    .fillMaxWidth(0.65f)
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(28.dp))
             )
         }
     }
