@@ -11,21 +11,32 @@ import com.trodar.notead.di.initKoin
 import org.koin.android.ext.koin.androidContext
 
 class MainActivity : ComponentActivity() {
+
+    private var isDataReady = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        splashScreen.setKeepOnScreenCondition {
+            !isDataReady
+        }
 
         try {
             initKoin {
                 androidContext(this@MainActivity)
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             // Already started
         }
 
         setContent {
-            App()
+            App(
+                onDataReady = {
+                    isDataReady = true
+                }
+            )
         }
     }
 }

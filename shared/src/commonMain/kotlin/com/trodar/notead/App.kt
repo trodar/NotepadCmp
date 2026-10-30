@@ -6,6 +6,8 @@ import com.trodar.navigation.NavHost
 
 @Composable
 @Preview
-fun App() {
-    NavHost()
+fun App(
+    onDataReady: () -> Unit = {}
+) {
+    NavHost(onDataReady = onDataReady)
 }
