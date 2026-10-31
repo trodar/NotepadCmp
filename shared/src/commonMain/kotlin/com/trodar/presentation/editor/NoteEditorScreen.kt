@@ -1,5 +1,8 @@
 package com.trodar.presentation.editor
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -9,7 +12,10 @@ import androidx.compose.material.icons.filled.Done
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
@@ -30,9 +36,14 @@ fun NoteEditorScreen(
     val note by viewModel.note.collectAsState()
     val scrollState = rememberScrollState()
     var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val focusRequester = remember { FocusRequester() }
 
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
+
+    val noteBgColorInt = note?.bgColor ?: 0xFFFFFFFF.toInt()
+    val isDefaultBg = noteBgColorInt == 0 || noteBgColorInt == 0xFFFFFFFF.toInt()
+    val noteBgColor = if (isDefaultBg) MaterialTheme.colorScheme.surface else Color(noteBgColorInt)
 
     LaunchedEffect(viewModel.richTextState.selection, imeBottom, textLayoutResult) {
         val layout = textLayoutResult ?: return@LaunchedEffect
@@ -83,7 +94,16 @@ fun NoteEditorScreen(
                     richTextState = viewModel.richTextState,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                        .padding(horizontal = 8.dp, vertical = 2.dp),
+                    noteBgColor = if (isDefaultBg) Color.Unspecified else noteBgColor,
+                    onNoteBgColorSelected = { selectedColor ->
+                        val colorInt = if (selectedColor == null || selectedColor == Color.Unspecified) {
+                            0xFFFFFFFF.toInt()
+                        } else {
+                            selectedColor.toArgb()
+                        }
+                        viewModel.updateNoteBgColor(colorInt)
+                    }
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             }
@@ -100,22 +120,38 @@ fun NoteEditorScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .verticalScroll(scrollState)
-                    .padding(horizontal = 16.dp)
             ) {
-                RichTextEditor(
-                    state = viewModel.richTextState,
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .defaultMinSize(minHeight = minHeight),
-                    colors = RichTextEditorDefaults.richTextEditorColors(
-                        containerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                    ),
-                    onTextLayout = { result ->
-                        textLayoutResult = result
-                    }
-                )
+                        .defaultMinSize(minHeight = minHeight)
+                        .background(
+                            color = if (isDefaultBg) MaterialTheme.colorScheme.surface else noteBgColor
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            focusRequester.requestFocus()
+                        }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    RichTextEditor(
+                        state = viewModel.richTextState,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .defaultMinSize(minHeight = minHeight)
+                            .focusRequester(focusRequester),
+                        colors = RichTextEditorDefaults.richTextEditorColors(
+                            containerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                        ),
+                        onTextLayout = { result ->
+                            textLayoutResult = result
+                        }
+                    )
+                }
             }
         }
     }

@@ -26,6 +26,7 @@ datastore = "1.3.0"
 kotlinxSerialization = "1.8.0"
 navigation3 = "1.2.0"
 navigation3-lifecycle = "2.11.0"
+kolor-picker = "2.1.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -76,6 +77,9 @@ kotlinx-serialization-protobuf = { module = "org.jetbrains.kotlinx:kotlinx-seria
 #NAVIGATION3
 jetbrains-navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 jetbrains-lifecycle-viewmodelNavigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "navigation3-lifecycle" }
+
+#KOLOR-PICKER
+kolor-picker = { module = "com.kborowy:kolor-picker", version.ref = "kolor-picker" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

@@ -79,6 +79,21 @@ class NoteEditorViewModel(
         }
     }
 
+    fun updateNoteBgColor(colorInt: Int) {
+        val current = _note.value ?: Note(
+            folderId = effectiveFolderId,
+            createdAt = Clock.System.now().toEpochMilliseconds(),
+            updatedAt = Clock.System.now().toEpochMilliseconds()
+        )
+        if (current.bgColor != colorInt) {
+            _note.value = current.copy(
+                bgColor = colorInt,
+                updatedAt = Clock.System.now().toEpochMilliseconds()
+            )
+            saveNow()
+        }
+    }
+
     fun saveNow() {
         autoSaveJob?.cancel()
 

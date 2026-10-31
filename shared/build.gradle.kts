@@ -70,6 +70,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.protobuf)
             implementation(libs.jetbrains.navigation3.ui)
             implementation(libs.jetbrains.lifecycle.viewmodelNavigation3)
+            implementation(libs.kolor.picker)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

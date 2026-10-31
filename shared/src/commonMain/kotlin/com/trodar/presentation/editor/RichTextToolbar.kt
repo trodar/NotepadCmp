@@ -2,7 +2,6 @@ package com.trodar.presentation.editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,49 +19,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.isSpecified
-import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.kborowy.colorpicker.KolorPicker
+import com.kborowy.colorpicker.config.PickerConfig
+import com.kborowy.colorpicker.config.TrackConfig
 import com.mohamedrejeb.richeditor.model.RichTextState
-import androidx.compose.ui.text.ParagraphStyle
-
-private val textColors = listOf(
-    Color(0xFF212121), // Black / Dark Gray
-    Color(0xFF757575), // Gray
-    Color(0xFFE53935), // Red
-    Color(0xFFD81B60), // Pink
-    Color(0xFF8E24AA), // Purple
-    Color(0xFF1E88E5), // Blue
-    Color(0xFF00ACC1), // Cyan
-    Color(0xFF43A047), // Green
-    Color(0xFFFB8C00), // Orange
-    Color(0xFF6D4C41), // Brown
-)
-
-private val bgHighlightColors = listOf(
-    Color(0xFFFFF59D), // Soft Yellow
-    Color(0xFFA5D6A7), // Soft Green
-    Color(0xFF80DEEA), // Soft Cyan
-    Color(0xFFF48FB1), // Soft Pink
-    Color(0xFFFFCC80), // Soft Orange
-    Color(0xFFCE93D8), // Soft Purple
-    Color(0xFFE0E0E0), // Light Gray
-    Color(0xFFFFCDD2), // Light Red
-    Color(0xFFC8E6C9), // Light Mint
-    Color(0xFFBBDEFB), // Light Blue
-)
 
 @Composable
 fun RichTextToolbar(
     richTextState: RichTextState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    noteBgColor: Color = Color.Unspecified,
+    onNoteBgColorSelected: (Color?) -> Unit = {}
 ) {
+    var showFontSizePicker by remember { mutableStateOf(false) }
     var showTextColorPicker by remember { mutableStateOf(false) }
     var showBgColorPicker by remember { mutableStateOf(false) }
+    var showNoteBgColorPicker by remember { mutableStateOf(false) }
 
     val currentSpanStyle = richTextState.currentSpanStyle
     val currentParagraphStyle = richTextState.currentParagraphStyle
@@ -88,6 +69,76 @@ fun RichTextToolbar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
+        // --- 1. FONT SIZE (Размер текста) ---
+        Box {
+            IconButton(onClick = { showFontSizePicker = true }) {
+                Icon(
+                    Icons.Default.FormatSize,
+                    contentDescription = "Размер текста",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            DropdownMenu(
+                expanded = showFontSizePicker,
+                onDismissRequest = { showFontSizePicker = false }
+            ) {
+                Text(
+                    text = "Размер текста",
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                )
+                HorizontalDivider()
+
+                val fontSizes = listOf(
+                    12.sp to "12 sp (Мелкий)",
+                    14.sp to "14 sp (Небольшой)",
+                    16.sp to "16 sp (Стандартный)",
+                    18.sp to "18 sp (Средний)",
+                    20.sp to "20 sp (Крупный)",
+                    24.sp to "24 sp (Подзаголовок)",
+                    28.sp to "28 sp (Заголовок)",
+                    32.sp to "32 sp (Большой)"
+                )
+
+                for ((size, label) in fontSizes) {
+                    val isSelected = currentSpanStyle.fontSize != TextUnit.Unspecified && currentSpanStyle.fontSize == size
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = label,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                ),
+                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                        },
+                        trailingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        } else null,
+                        onClick = {
+                            richTextState.addSpanStyle(SpanStyle(fontSize = size))
+                            showFontSizePicker = false
+                        }
+                    )
+                }
+            }
+        }
+
+        VerticalDivider(
+            modifier = Modifier
+                .height(24.dp)
+                .padding(horizontal = 4.dp),
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
+
         // --- BOLD ---
         IconButton(
             onClick = {
@@ -246,172 +297,189 @@ fun RichTextToolbar(
         )
 
         // --- TEXT COLOR ---
-        Box {
-            IconButton(onClick = { showTextColorPicker = true }) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.FormatColorText,
-                        contentDescription = "Цвет текста",
-                        tint = if (currentColor.isSpecified && currentColor != Color.Unspecified) currentColor else MaterialTheme.colorScheme.onSurface
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(18.dp)
-                            .height(3.dp)
-                            .background(
-                                if (currentColor.isSpecified && currentColor != Color.Unspecified) currentColor else MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(1.dp)
-                            )
-                    )
-                }
-            }
-
-            DropdownMenu(
-                expanded = showTextColorPicker,
-                onDismissRequest = { showTextColorPicker = false }
-            ) {
-                Text(
-                    text = "Цвет текста",
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        IconButton(onClick = { showTextColorPicker = true }) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.FormatColorText,
+                    contentDescription = "Цвет текста",
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(8.dp))
-                ColorPaletteGrid(
-                    colors = textColors,
-                    selectedColor = currentColor,
-                    onColorSelected = { color ->
-                        if (color == null) {
-                            richTextState.removeSpanStyle(SpanStyle(color = richTextState.currentSpanStyle.color))
-                        } else {
-                            richTextState.addSpanStyle(SpanStyle(color = color))
-                        }
-                        showTextColorPicker = false
-                    }
+                Box(
+                    modifier = Modifier
+                        .width(18.dp)
+                        .height(3.dp)
+                        .background(
+                            if (currentColor.isSpecified && currentColor != Color.Unspecified) currentColor else MaterialTheme.colorScheme.primary,
+                            shape = RoundedCornerShape(1.dp)
+                        )
                 )
             }
         }
 
         // --- BACKGROUND / HIGHLIGHT COLOR ---
-        Box {
-            IconButton(onClick = { showBgColorPicker = true }) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        Icons.Default.FormatColorFill,
-                        contentDescription = "Цвет фона текста",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                    Box(
-                        modifier = Modifier
-                            .width(18.dp)
-                            .height(3.dp)
-                            .background(
-                                if (currentBgColor.isSpecified && currentBgColor != Color.Unspecified) currentBgColor else Color.Transparent,
-                                shape = RoundedCornerShape(1.dp)
-                            )
-                    )
-                }
-            }
-
-            DropdownMenu(
-                expanded = showBgColorPicker,
-                onDismissRequest = { showBgColorPicker = false }
-            ) {
-                Text(
-                    text = "Цвет фона текста",
-                    style = MaterialTheme.typography.labelMedium,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+        IconButton(onClick = { showBgColorPicker = true }) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.BorderColor,
+                    contentDescription = "Маркер текста",
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
-                HorizontalDivider()
-                Spacer(modifier = Modifier.height(8.dp))
-                ColorPaletteGrid(
-                    colors = bgHighlightColors,
-                    selectedColor = currentBgColor,
-                    onColorSelected = { color ->
-                        if (color == null) {
-                            richTextState.removeSpanStyle(SpanStyle(background = richTextState.currentSpanStyle.background))
-                        } else {
-                            richTextState.addSpanStyle(SpanStyle(background = color))
-                        }
-                        showBgColorPicker = false
-                    }
+                Box(
+                    modifier = Modifier
+                        .width(18.dp)
+                        .height(3.dp)
+                        .background(
+                            if (currentBgColor.isSpecified && currentBgColor != Color.Unspecified) currentBgColor else Color.Transparent,
+                            shape = RoundedCornerShape(1.dp)
+                        )
                 )
             }
         }
+
+        VerticalDivider(
+            modifier = Modifier
+                .height(24.dp)
+                .padding(horizontal = 4.dp),
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
+
+        // --- NOTE PAGE BACKGROUND COLOR ---
+        IconButton(onClick = { showNoteBgColorPicker = true }) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(
+                    Icons.Default.Palette,
+                    contentDescription = "Фон всей заметки",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+                Box(
+                    modifier = Modifier
+                        .width(18.dp)
+                        .height(3.dp)
+                        .background(
+                            if (noteBgColor.isSpecified && noteBgColor != Color.Unspecified) noteBgColor else Color.Transparent,
+                            shape = RoundedCornerShape(1.dp)
+                        )
+                )
+            }
+        }
+    }
+
+    if (showTextColorPicker) {
+        ColorPickerDialog(
+            title = "Цвет текста",
+            initialColor = currentColor,
+            onDismissRequest = { showTextColorPicker = false },
+            onResetColor = {
+                richTextState.removeSpanStyle(SpanStyle(color = richTextState.currentSpanStyle.color))
+            },
+            onColorSelected = { selected ->
+                richTextState.addSpanStyle(SpanStyle(color = selected))
+            }
+        )
+    }
+
+    if (showBgColorPicker) {
+        ColorPickerDialog(
+            title = "Маркер (фон текста)",
+            initialColor = currentBgColor,
+            onDismissRequest = { showBgColorPicker = false },
+            onResetColor = {
+                richTextState.removeSpanStyle(SpanStyle(background = richTextState.currentSpanStyle.background))
+            },
+            onColorSelected = { selected ->
+                richTextState.addSpanStyle(SpanStyle(background = selected))
+            }
+        )
+    }
+
+    if (showNoteBgColorPicker) {
+        ColorPickerDialog(
+            title = "Фон всей заметки",
+            initialColor = noteBgColor,
+            onDismissRequest = { showNoteBgColorPicker = false },
+            onResetColor = {
+                onNoteBgColorSelected(null)
+            },
+            onColorSelected = { selected ->
+                onNoteBgColorSelected(selected)
+            }
+        )
     }
 }
 
 @Composable
-private fun ColorPaletteGrid(
-    colors: List<Color>,
-    selectedColor: Color,
-    onColorSelected: (Color?) -> Unit
+private fun ColorPickerDialog(
+    title: String,
+    initialColor: Color,
+    onDismissRequest: () -> Unit,
+    onResetColor: () -> Unit,
+    onColorSelected: (Color) -> Unit
 ) {
-    Column(
-        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .clickable { onColorSelected(null) }
-                .padding(vertical = 6.dp, horizontal = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
-                contentAlignment = Alignment.Center
+    var selectedColor by remember(initialColor) {
+        mutableStateOf(if (initialColor.isSpecified && initialColor != Color.Unspecified) initialColor else Color.Black)
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Default.FormatColorReset,
-                    contentDescription = "Сбросить цвет",
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                Text(text = title, style = MaterialTheme.typography.titleMedium)
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(selectedColor)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
                 )
             }
-            Text(
-                text = "Сбросить цвет",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-
-        val chunkedColors = colors.chunked(5)
-        for (row in chunkedColors) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                for (color in row) {
-                    val isSelected = selectedColor.isSpecified && selectedColor == color
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .background(color)
-                            .border(
-                                width = if (isSelected) 3.dp else 1.dp,
-                                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-                                shape = CircleShape
-                            )
-                            .clickable { onColorSelected(color) },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = if (color.luminance() < 0.5f) Color.White else Color.Black
-                            )
-                        }
-                    }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
+                ) {
+                    KolorPicker(
+                        initialColor = selectedColor,
+                        onColorSelected = { color ->
+                            selectedColor = color
+                        },
+                        pickerConfig = PickerConfig.Default,
+                        alphaTrackConfig = TrackConfig.Default,
+                        hueTrackConfig = TrackConfig.Default,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onColorSelected(selectedColor)
+                onDismissRequest()
+            }) {
+                Text("Выбрать")
+            }
+        },
+        dismissButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = {
+                    onResetColor()
+                    onDismissRequest()
+                }) {
+                    Text("Сбросить")
+                }
+                TextButton(onClick = onDismissRequest) {
+                    Text("Отмена")
                 }
             }
         }
-    }
+    )
 }

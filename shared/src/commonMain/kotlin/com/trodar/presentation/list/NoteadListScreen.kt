@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.trodar.domain.model.FolderOrNote
 import com.trodar.presentation.settings.SettingsDrawerContent
@@ -145,13 +146,20 @@ fun NoteadListScreen(
                             }
                         }
                         is FolderOrNote.NoteItem -> {
+                            val noteBgColorInt = item.note.bgColor
+                            val hasCustomBg = noteBgColorInt != 0 && noteBgColorInt != 0xFFFFFFFF.toInt()
+                            val cardColors = if (hasCustomBg) {
+                                CardDefaults.cardColors(containerColor = Color(noteBgColorInt))
+                            } else {
+                                defaultCardColors()
+                            }
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
                                         onNavigateToNote(item.note.id, item.note.folderId)
                                     },
-                                colors = defaultCardColors()
+                                colors = cardColors
                             ) {
                                 Row(
                                     modifier = Modifier
