@@ -18,6 +18,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.trodar.domain.model.FolderOrNote
 import com.trodar.presentation.settings.SettingsDrawerContent
+import com.trodar.presentation.theme.IconThemeType
+import com.trodar.presentation.theme.ThemedIcon
+import com.trodar.presentation.theme.ThemedText
+import com.trodar.presentation.theme.defaultCardColors
+import com.trodar.presentation.theme.defaultTopAppBarColors
 import kotlinx.coroutines.launch
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -25,7 +30,7 @@ import org.koin.compose.viewmodel.koinViewModel
 @Composable
 fun NoteadListScreen(
     viewModel: NoteadListViewModel = koinViewModel<NoteadListViewModel>(),
-    onNavigateToNote: (Long) -> Unit,
+    onNavigateToNote: (noteId: Long, folderId: Long?) -> Unit,
     onInitialDataLoaded: () -> Unit = {}
 ) {
     val items by viewModel.items.collectAsState()
@@ -33,6 +38,7 @@ fun NoteadListScreen(
     val canNavigateBack by viewModel.canNavigateBack.collectAsState()
     val currentFolderName by viewModel.currentFolderName.collectAsState()
     val currentTheme by viewModel.currentTheme.collectAsState()
+    val parentId by viewModel.parentId.collectAsState()
 
     LaunchedEffect(isInitialDataLoaded) {
         if (isInitialDataLoaded) {
@@ -65,6 +71,7 @@ fun NoteadListScreen(
             topBar = {
                 TopAppBar(
                     title = { Text(currentFolderName) },
+                    colors = defaultTopAppBarColors(),
                     navigationIcon = {
                         if (canNavigateBack) {
                             IconButton(onClick = {
@@ -85,10 +92,7 @@ fun NoteadListScreen(
                             Icon(Icons.Default.Folder, contentDescription = "Создать папку")
                         }
                         IconButton(onClick = {
-                            coroutineScope.launch {
-                                val newNoteId = viewModel.createNewNote()
-                                onNavigateToNote(newNoteId)
-                            }
+                            onNavigateToNote(0L, parentId)
                         }) {
                             Icon(Icons.Default.Add, contentDescription = "Создать запись")
                         }
@@ -100,7 +104,8 @@ fun NoteadListScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .consumeWindowInsets(padding)
-                    .padding(horizontal = 16.dp),
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 8.dp),
                 contentPadding = padding,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -117,7 +122,8 @@ fun NoteadListScreen(
                                     .fillMaxWidth()
                                     .clickable {
                                         viewModel.navigateToFolder(item.folder.id, item.folder.name)
-                                    }
+                                    },
+                                colors = defaultCardColors()
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -125,15 +131,15 @@ fun NoteadListScreen(
                                         .padding(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Folder, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    ThemedIcon(Icons.Default.Folder, contentDescription = null, type = IconThemeType.PRIMARY)
                                     Spacer(modifier = Modifier.width(16.dp))
-                                    Text(
+                                    ThemedText(
                                         text = item.folder.name.ifBlank { "Без названия" },
                                         style = MaterialTheme.typography.titleMedium,
                                         modifier = Modifier.weight(1f)
                                     )
                                     IconButton(onClick = { viewModel.deleteFolder(item.folder.id) }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Удалить папку")
+                                        ThemedIcon(Icons.Default.Delete, contentDescription = "Удалить папку", type = IconThemeType.ERROR)
                                     }
                                 }
                             }
@@ -143,8 +149,9 @@ fun NoteadListScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
-                                        onNavigateToNote(item.note.id)
-                                    }
+                                        onNavigateToNote(item.note.id, item.note.folderId)
+                                    },
+                                colors = defaultCardColors()
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -152,16 +159,16 @@ fun NoteadListScreen(
                                         .padding(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Create, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
+                                    ThemedIcon(Icons.Default.Create, contentDescription = null, type = IconThemeType.SECONDARY)
                                     Spacer(modifier = Modifier.width(16.dp))
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text(
+                                        ThemedText(
                                             text = item.note.title.ifBlank { "Без названия" },
                                             style = MaterialTheme.typography.titleMedium
                                         )
                                     }
                                     IconButton(onClick = { viewModel.deleteNote(item.note.id) }) {
-                                        Icon(Icons.Default.Delete, contentDescription = "Удалить запись")
+                                        ThemedIcon(Icons.Default.Delete, contentDescription = "Удалить запись", type = IconThemeType.ERROR)
                                     }
                                 }
                             }
@@ -184,7 +191,7 @@ fun NoteadListScreen(
                     },
                     confirmButton = {
                         TextButton(onClick = {
-                            if (newFolderName.isNotBlank()) {
+                            if (newFolderName.trim().isNotBlank()) {
                                 viewModel.createFolder(newFolderName)
                                 newFolderName = ""
                                 showCreateFolderDialog = false

@@ -19,6 +19,7 @@ class SettingsRepositoryImpl(
             AppThemeProto.THEME_PINK -> AppTheme.PINK
             AppThemeProto.THEME_PURPLE -> AppTheme.PURPLE
             AppThemeProto.THEME_BLUE -> AppTheme.BLUE
+            AppThemeProto.THEME_YELLOW -> AppTheme.YELLOW
         }
     }
 
@@ -29,6 +30,7 @@ class SettingsRepositoryImpl(
             AppTheme.PINK -> AppThemeProto.THEME_PINK
             AppTheme.PURPLE -> AppThemeProto.THEME_PURPLE
             AppTheme.BLUE -> AppThemeProto.THEME_BLUE
+            AppTheme.YELLOW -> AppThemeProto.THEME_YELLOW
         }
         dataStore.updateData { currentPrefs ->
             currentPrefs.copy(theme = protoTheme)

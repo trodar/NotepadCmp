@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
+import com.trodar.presentation.theme.defaultTopAppBarColors
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -58,6 +59,7 @@ fun NoteEditorScreen(
         topBar = {
             TopAppBar(
                 title = { Text(note?.title.takeIf { !it.isNullOrEmpty() } ?: "Запись") },
+                colors = defaultTopAppBarColors(),
                 navigationIcon = {
                     IconButton(onClick = {
                         viewModel.saveNow()

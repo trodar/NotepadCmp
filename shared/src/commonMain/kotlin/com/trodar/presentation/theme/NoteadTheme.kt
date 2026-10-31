@@ -7,15 +7,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import com.trodar.domain.model.AppTheme
 
-// 1. Светлый (Light)
+// 1. Светлый (Light / Зелёный)
 private val LightColorScheme = lightColorScheme(
-    primary = Color(0xFF1565C0),
+    primary = Color(0xFF2E7D32),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFE3F2FD),
-    onPrimaryContainer = Color(0xFF0D47A1),
-    secondary = Color(0xFF455A64),
+    primaryContainer = Color(0xFFE8F5E9),
+    onPrimaryContainer = Color(0xFF1B5E20),
+    secondary = Color(0xFF388E3C),
     onSecondary = Color.White,
-    background = Color(0xFFF8F9FA),
+    background = Color(0xFFF1F8E9),
     onBackground = Color(0xFF1C1B1F),
     surface = Color.White,
     onSurface = Color(0xFF1C1B1F)
@@ -77,6 +77,20 @@ private val BlueColorScheme = lightColorScheme(
     onSurface = Color(0xFF182225)
 )
 
+// 6. Жёлтый (Yellow)
+private val YellowColorScheme = lightColorScheme(
+    primary = Color(0xFFF57F17),
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFFFF9C4),
+    onPrimaryContainer = Color(0xFFF57F17),
+    secondary = Color(0xFFFBC02D),
+    onSecondary = Color.Black,
+    background = Color(0xFFFFFDE7),
+    onBackground = Color(0xFF1C1B1F),
+    surface = Color.White,
+    onSurface = Color(0xFF1C1B1F)
+)
+
 @Composable
 fun NoteadTheme(
     appTheme: AppTheme = AppTheme.LIGHT,
@@ -88,6 +102,7 @@ fun NoteadTheme(
         AppTheme.PINK -> PinkColorScheme
         AppTheme.PURPLE -> PurpleColorScheme
         AppTheme.BLUE -> BlueColorScheme
+        AppTheme.YELLOW -> YellowColorScheme
     }
 
     MaterialTheme(

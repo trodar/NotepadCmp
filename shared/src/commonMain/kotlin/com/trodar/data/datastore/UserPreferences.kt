@@ -16,7 +16,9 @@ enum class AppThemeProto {
     @ProtoNumber(3)
     THEME_PURPLE,
     @ProtoNumber(4)
-    THEME_BLUE
+    THEME_BLUE,
+    @ProtoNumber(5)
+    THEME_YELLOW
 }
 
 @OptIn(ExperimentalSerializationApi::class)

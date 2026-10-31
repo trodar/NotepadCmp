@@ -81,20 +81,41 @@ class NoteEditorViewModel(
 
     fun saveNow() {
         autoSaveJob?.cancel()
+
         val currentContent = richTextState.toHtml()
         val currentNote = _note.value ?: Note(
             folderId = effectiveFolderId,
             createdAt = Clock.System.now().toEpochMilliseconds(),
             updatedAt = Clock.System.now().toEpochMilliseconds()
         )
+
         viewModelScope.launch {
             withContext(NonCancellable) {
-                val savedId = repository.saveNoteWithContent(currentNote, currentContent)
-                val updatedNoteWithText = repository.getNoteWithText(savedId)
-                if (updatedNoteWithText != null) {
-                    _note.value = updatedNoteWithText.note
+                if (isTextBlank(currentContent)) {
+                    if (currentNote.id > 0) {
+                        repository.deleteNote(currentNote.id)
+                        _note.value = currentNote.copy(id = 0)
+                    }
+                } else {
+                    val savedId = repository.saveNoteWithContent(currentNote, currentContent)
+                    val updatedNoteWithText = repository.getNoteWithText(savedId)
+                    if (updatedNoteWithText != null) {
+                        _note.value = updatedNoteWithText.note
+                    }
                 }
             }
         }
+    }
+
+    private fun isTextBlank(html: String): Boolean {
+        val cleanText = html
+            .replace(Regex("<[^>]*>"), "")
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+        return cleanText.isBlank()
     }
 }

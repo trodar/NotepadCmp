@@ -72,8 +72,8 @@ private fun EntryProviderScope<AppRoute>.screens(
 ) {
     entry<NoteListRoute> {
         NoteadListScreen(
-            onNavigateToNote = { noteId ->
-                navigator.add(NoteEditorRoute(noteId = noteId))
+            onNavigateToNote = { noteId, folderId ->
+                navigator.add(NoteEditorRoute(noteId = noteId, folderId = folderId))
             },
             onInitialDataLoaded = onInitialDataLoaded
         )

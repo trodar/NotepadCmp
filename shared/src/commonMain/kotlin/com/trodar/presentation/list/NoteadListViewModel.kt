@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.trodar.domain.model.Folder
 import com.trodar.domain.model.FolderOrNote
-import com.trodar.domain.model.Note
 import com.trodar.domain.model.AppTheme
 import com.trodar.domain.repository.NoteadRepository
 import com.trodar.domain.repository.SettingsRepository
@@ -67,27 +66,18 @@ class NoteadListViewModel(
     }
 
     fun createFolder(name: String) {
+        val trimmedName = name.trim()
+        if (trimmedName.isBlank()) return
         viewModelScope.launch {
             val now = Clock.System.now().toEpochMilliseconds()
             val folder = Folder(
                 parentId = parentId.value,
-                name = name,
+                name = trimmedName,
                 createdAt = now,
                 updatedAt = now
             )
             repository.upsertFolder(folder)
         }
-    }
-
-    suspend fun createNewNote(): Long {
-        val now = Clock.System.now().toEpochMilliseconds()
-        val note = Note(
-            folderId = parentId.value,
-            title = "",
-            createdAt = now,
-            updatedAt = now
-        )
-        return repository.saveNoteWithContent(note, "")
     }
 
     fun deleteFolder(folderId: Long) {

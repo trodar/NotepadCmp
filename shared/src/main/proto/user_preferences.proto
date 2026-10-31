@@ -9,6 +9,7 @@ enum AppThemeProto {
   THEME_PINK = 2;
   THEME_PURPLE = 3;
   THEME_BLUE = 4;
+  THEME_YELLOW = 5;
 }
 
 message UserPreferences {
