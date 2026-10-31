@@ -59,25 +59,34 @@ fun NoteEditorScreen(
     Scaffold(
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
-            TopAppBar(
-                title = { Text(note?.title.takeIf { !it.isNullOrEmpty() } ?: "Запись") },
-                colors = defaultTopAppBarColors(),
-                navigationIcon = {
-                    IconButton(onClick = {
-                        viewModel.saveNow()
-                        onBack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+            Column {
+                TopAppBar(
+                    title = { Text(note?.title.takeIf { !it.isNullOrEmpty() } ?: "Запись") },
+                    colors = defaultTopAppBarColors(),
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            viewModel.saveNow()
+                            onBack()
+                        }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = {
+                            viewModel.saveNow()
+                        }) {
+                            Icon(Icons.Default.Done, contentDescription = "Сохранить")
+                        }
                     }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        viewModel.saveNow()
-                    }) {
-                        Icon(Icons.Default.Done, contentDescription = "Сохранить")
-                    }
-                }
-            )
+                )
+                RichTextToolbar(
+                    richTextState = viewModel.richTextState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+            }
         }
     ) { padding ->
         BoxWithConstraints(
