@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
+import kotlin.time.Clock
+
 class NoteadRepositoryImpl(
     private val folderDao: FolderDao,
     private val noteDao: NoteDao,
@@ -32,6 +34,12 @@ class NoteadRepositoryImpl(
     override fun getAllFoldersAndNotes(): Flow<List<FolderOrNote>> {
         return noteadDao.getAllFoldersAndNotes()
             .map { list -> list.map { it.toDomain() } }
+            .flowOn(Dispatchers.IO)
+    }
+
+    override fun observeFolder(id: Long): Flow<Folder?> {
+        return folderDao.observeFolderById(id)
+            .map { it?.toDomain() }
             .flowOn(Dispatchers.IO)
     }
 
@@ -57,7 +65,26 @@ class NoteadRepositoryImpl(
     }
 
     override suspend fun saveNoteWithContent(note: Note, content: String): Long = withContext(Dispatchers.IO) {
-        noteDao.saveNoteWithContent(note.toEntity(), content)
+        val plainText = extractPlainText(content)
+        val title = plainText.take(20)
+        val currentTime = Clock.System.now().toEpochMilliseconds()
+        val updatedNote = note.copy(
+            title = title,
+            createdAt = if (note.id == 0L) currentTime else note.createdAt,
+            updatedAt = currentTime
+        )
+        noteDao.saveNoteWithText(updatedNote.toEntity(), content)
+    }
+
+    private fun extractPlainText(html: String): String {
+        return html
+            .replace(Regex("<[^>]*>"), "")
+            .replace("&nbsp;", " ")
+            .replace("&amp;", "&")
+            .replace("&lt;", "<")
+            .replace("&gt;", ">")
+            .replace(Regex("\\s+"), " ")
+            .trim()
     }
 
     override suspend fun deleteNote(noteId: Long) = withContext(Dispatchers.IO) {

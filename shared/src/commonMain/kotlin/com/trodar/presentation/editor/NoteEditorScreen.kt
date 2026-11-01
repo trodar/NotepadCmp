@@ -44,6 +44,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditorDefaults
+import com.trodar.domain.model.Note
 import com.trodar.presentation.theme.defaultTopAppBarColors
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -65,8 +66,8 @@ fun NoteEditorScreen(
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
 
-    val noteBgColorInt = note?.bgColor ?: 0xFFFFFFFF.toInt()
-    val isDefaultBg = noteBgColorInt == 0 || noteBgColorInt == 0xFFFFFFFF.toInt()
+    val noteBgColorInt = note?.bgColor ?: Note.DEFAULT_BG_COLOR
+    val isDefaultBg = noteBgColorInt == 0 || noteBgColorInt == Note.DEFAULT_BG_COLOR
     val noteBgColor = if (isDefaultBg) MaterialTheme.colorScheme.surface else Color(noteBgColorInt)
 
     LaunchedEffect(viewModel.richTextState.selection, imeBottom, textLayoutResult) {

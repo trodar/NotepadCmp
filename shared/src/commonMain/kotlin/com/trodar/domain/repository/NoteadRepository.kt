@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 interface NoteadRepository {
     fun getFoldersAndNotes(parentId: Long?): Flow<List<FolderOrNote>>
     fun getAllFoldersAndNotes(): Flow<List<FolderOrNote>>
+    fun observeFolder(id: Long): Flow<Folder?>
     suspend fun getFolderById(id: Long): Folder?
     suspend fun getNoteWithText(noteId: Long): NoteWithText?
     suspend fun upsertFolder(folder: Folder): Long

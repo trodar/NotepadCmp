@@ -27,6 +27,7 @@ class FakeNoteadRepository : NoteadRepository {
 
     override fun getFoldersAndNotes(parentId: Long?): Flow<List<FolderOrNote>> = flowOf(emptyList())
     override fun getAllFoldersAndNotes(): Flow<List<FolderOrNote>> = flowOf(emptyList())
+    override fun observeFolder(id: Long): Flow<Folder?> = flowOf(null)
     override suspend fun getFolderById(id: Long): Folder? = null
 
     override suspend fun getNoteWithText(noteId: Long): NoteWithText? {

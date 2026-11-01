@@ -7,6 +7,8 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import kotlin.time.Clock
 
+import com.trodar.domain.model.Note
+
 @Entity(
     tableName = "note",
     foreignKeys = [ForeignKey(
@@ -21,7 +23,7 @@ data class NoteEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     @ColumnInfo(name = "folder_id") val folderId: Long? = null,   // null = без папки
     val title: String = "",
-    @ColumnInfo(name = "bg_color") val bgColor: Int = 0xFFFFFFFF.toInt(),
+    @ColumnInfo(name = "bg_color") val bgColor: Int = Note.DEFAULT_BG_COLOR,
     @ColumnInfo(name = "text_color") val textColor: Int = 0xFF000000.toInt(),
     @ColumnInfo(name = "frame_id") val frameId: Int = 0,
     @ColumnInfo(name = "created_at") val createdAt: Long = Clock.System.now().toEpochMilliseconds(),

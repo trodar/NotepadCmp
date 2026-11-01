@@ -36,30 +36,10 @@ interface NoteDao {
     @Query("DELETE FROM note WHERE id = :id")
     suspend fun deleteNoteById(id: Long)
 
-    // 4. NoteEntity.title берется первые 50 символов из текста. обновляется при сохранении текста.
     @Transaction
-    suspend fun saveNoteWithContent(note: NoteEntity, content: String): Long {
-        val plainText = content
-            .replace(Regex("<[^>]*>"), "")
-            .replace("&nbsp;", " ")
-            .replace("&amp;", "&")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .replace(Regex("\\s+"), " ")
-            .trim()
-        val title = plainText.take(20)
-        val currentTime = Clock.System.now().toEpochMilliseconds()
-        val updatedNote = note.let {
-            if (it.id == 0L) {
-                it.copy(title = title, createdAt = currentTime, updatedAt = currentTime)
-            } else {
-                it.copy(title = title, updatedAt = currentTime)
-            }
-        }
-
-        val noteId = upsertNote(updatedNote)
+    suspend fun saveNoteWithText(note: NoteEntity, content: String): Long {
+        val noteId = upsertNote(note)
         val actualNoteId = if (note.id == 0L) noteId else note.id
-
         upsertNoteText(NoteTextEntity(noteId = actualNoteId, content = content))
         return actualNoteId
     }

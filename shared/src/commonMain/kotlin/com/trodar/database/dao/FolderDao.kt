@@ -18,6 +18,9 @@ interface FolderDao {
     @Query("SELECT * FROM folder WHERE id = :id")
     suspend fun getFolderById(id: Long): FolderEntity?
 
+    @Query("SELECT * FROM folder WHERE id = :id")
+    fun observeFolderById(id: Long): Flow<FolderEntity?>
+
     @Upsert
     suspend fun upsertFolder(folder: FolderEntity): Long
 

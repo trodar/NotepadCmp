@@ -46,14 +46,20 @@ class NoteadListViewModel(
         }
     }
 
-    private val _folderStack = MutableStateFlow<List<Pair<Long?, String>>>(listOf(null to "Блокнот"))
+    private val _folderStack = MutableStateFlow<List<Long?>>(listOf(null))
 
     val parentId: StateFlow<Long?> = _folderStack
-        .map { it.last().first }
+        .map { it.last() }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val currentFolderName: StateFlow<String> = _folderStack
-        .map { it.last().second }
+    val currentFolderName: StateFlow<String> = parentId
+        .flatMapLatest { id ->
+            if (id == null) {
+                flowOf("Блокнот")
+            } else {
+                repository.observeFolder(id).map { it?.name?.ifBlank { "Папка" } ?: "Папка" }
+            }
+        }
         .stateIn(viewModelScope, SharingStarted.Eagerly, "Блокнот")
 
     val canNavigateBack: StateFlow<Boolean> = _folderStack
@@ -91,9 +97,9 @@ class NoteadListViewModel(
         initialValue = emptyList()
     )
 
-    fun navigateToFolder(folderId: Long?, folderName: String) {
+    fun navigateToFolder(folderId: Long?, folderName: String = "") {
         commitPendingDeletion()
-        _folderStack.update { stack -> stack + (folderId to folderName) }
+        _folderStack.update { stack -> stack + folderId }
     }
 
     fun navigateBack() {

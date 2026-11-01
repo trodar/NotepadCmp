@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.trodar.domain.model.FolderOrNote
+import com.trodar.domain.model.Note
 import com.trodar.presentation.settings.SettingsDrawerContent
 import com.trodar.presentation.theme.IconThemeType
 import com.trodar.presentation.theme.ThemedIcon
@@ -186,7 +187,7 @@ fun NoteadListScreen(
                         }
                         is FolderOrNote.NoteItem -> {
                             val noteBgColorInt = item.note.bgColor
-                            val hasCustomBg = noteBgColorInt != 0 && noteBgColorInt != 0xFFFFFFFF.toInt()
+                            val hasCustomBg = noteBgColorInt != 0 && noteBgColorInt != Note.DEFAULT_BG_COLOR
                             val cardColors = if (hasCustomBg) {
                                 CardDefaults.cardColors(containerColor = Color(noteBgColorInt))
                             } else {
