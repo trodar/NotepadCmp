@@ -38,7 +38,7 @@ class NoteadListViewModel(
 ) : ViewModel() {
 
     val currentTheme: StateFlow<AppTheme> = settingsRepository.appTheme
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.LIGHT)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.GREEN)
 
     fun setTheme(theme: AppTheme) {
         viewModelScope.launch {

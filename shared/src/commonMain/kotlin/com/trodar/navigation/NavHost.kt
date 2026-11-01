@@ -23,7 +23,7 @@ fun NavHost(
     onDataReady: () -> Unit = {}
 ) {
     val settingsRepository: SettingsRepository = koinInject()
-    val currentTheme by settingsRepository.appTheme.collectAsState(initial = AppTheme.LIGHT)
+    val currentTheme by settingsRepository.appTheme.collectAsState(initial = AppTheme.GREEN)
 
     NoteadTheme(appTheme = currentTheme) {
         Box(

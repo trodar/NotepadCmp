@@ -93,11 +93,11 @@ private val YellowColorScheme = lightColorScheme(
 
 @Composable
 fun NoteadTheme(
-    appTheme: AppTheme = AppTheme.LIGHT,
+    appTheme: AppTheme = AppTheme.GREEN,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when (appTheme) {
-        AppTheme.LIGHT -> LightColorScheme
+        AppTheme.GREEN -> LightColorScheme
         AppTheme.DARK -> DarkColorScheme
         AppTheme.PINK -> PinkColorScheme
         AppTheme.PURPLE -> PurpleColorScheme

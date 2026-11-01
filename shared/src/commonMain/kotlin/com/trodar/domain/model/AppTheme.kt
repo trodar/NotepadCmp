@@ -1,7 +1,7 @@
 package com.trodar.domain.model
 
 enum class AppTheme(val displayName: String) {
-    LIGHT("Светлая"),
+    GREEN("Зелёная"),
     DARK("Тёмная"),
     PINK("Розовая"),
     PURPLE("Фиолетовая"),

@@ -115,7 +115,7 @@ fun SettingsDrawerContent(
                         rowThemes.forEach { theme ->
                             val isSelected = currentTheme == theme
                             val previewColor = when (theme) {
-                                AppTheme.LIGHT -> Color(0xFF2E7D32)
+                                AppTheme.GREEN -> Color(0xFF2E7D32)
                                 AppTheme.DARK -> Color(0xFF212121)
                                 AppTheme.PINK -> Color(0xFFD81B60)
                                 AppTheme.PURPLE -> Color(0xFF673AB7)

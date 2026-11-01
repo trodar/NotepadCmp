@@ -14,7 +14,7 @@ class SettingsRepositoryImpl(
 
     override val appTheme: Flow<AppTheme> = dataStore.data.map { prefs ->
         when (prefs.theme) {
-            AppThemeProto.THEME_LIGHT -> AppTheme.LIGHT
+            AppThemeProto.THEME_LIGHT -> AppTheme.GREEN
             AppThemeProto.THEME_DARK -> AppTheme.DARK
             AppThemeProto.THEME_PINK -> AppTheme.PINK
             AppThemeProto.THEME_PURPLE -> AppTheme.PURPLE
@@ -25,7 +25,7 @@ class SettingsRepositoryImpl(
 
     override suspend fun setAppTheme(theme: AppTheme) {
         val protoTheme = when (theme) {
-            AppTheme.LIGHT -> AppThemeProto.THEME_LIGHT
+            AppTheme.GREEN -> AppThemeProto.THEME_LIGHT
             AppTheme.DARK -> AppThemeProto.THEME_DARK
             AppTheme.PINK -> AppThemeProto.THEME_PINK
             AppTheme.PURPLE -> AppThemeProto.THEME_PURPLE
