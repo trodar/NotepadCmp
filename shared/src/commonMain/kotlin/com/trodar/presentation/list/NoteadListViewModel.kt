@@ -8,9 +8,28 @@ import com.trodar.domain.model.AppTheme
 import com.trodar.domain.repository.NoteadRepository
 import com.trodar.domain.repository.SettingsRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.time.Clock
+
+sealed interface PendingDeletion {
+    val id: Long
+    val name: String
+
+    data class Folder(
+        override val id: Long,
+        override val name: String
+    ) : PendingDeletion
+
+    data class Note(
+        override val id: Long,
+        override val name: String
+    ) : PendingDeletion
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NoteadListViewModel(
@@ -44,28 +63,48 @@ class NoteadListViewModel(
     private val _isInitialDataLoaded = MutableStateFlow(false)
     val isInitialDataLoaded: StateFlow<Boolean> = _isInitialDataLoaded.asStateFlow()
 
-    val items: StateFlow<List<FolderOrNote>> = parentId
-        .flatMapLatest { id ->
+    private val _pendingDeletion = MutableStateFlow<PendingDeletion?>(null)
+    val pendingDeletion: StateFlow<PendingDeletion?> = _pendingDeletion.asStateFlow()
+
+    private var pendingDeleteJob: Job? = null
+
+    val items: StateFlow<List<FolderOrNote>> = combine(
+        parentId.flatMapLatest { id ->
             repository.getFoldersAndNotes(id)
                 .onEach { _isInitialDataLoaded.value = true }
+        },
+        _pendingDeletion
+    ) { list, pending ->
+        if (pending == null) {
+            list
+        } else {
+            list.filter { item ->
+                when (item) {
+                    is FolderOrNote.FolderItem -> !(pending is PendingDeletion.Folder && pending.id == item.folder.id)
+                    is FolderOrNote.NoteItem -> !(pending is PendingDeletion.Note && pending.id == item.note.id)
+                }
+            }
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     fun navigateToFolder(folderId: Long?, folderName: String) {
+        commitPendingDeletion()
         _folderStack.update { stack -> stack + (folderId to folderName) }
     }
 
     fun navigateBack() {
+        commitPendingDeletion()
         if (_folderStack.value.size > 1) {
             _folderStack.update { stack -> stack.dropLast(1) }
         }
     }
 
     fun createFolder(name: String) {
+        commitPendingDeletion()
         val trimmedName = name.trim()
         if (trimmedName.isBlank()) return
         viewModelScope.launch {
@@ -80,6 +119,53 @@ class NoteadListViewModel(
         }
     }
 
+    fun deleteItemPending(item: FolderOrNote) {
+        commitPendingDeletion()
+
+        val pending = when (item) {
+            is FolderOrNote.FolderItem -> PendingDeletion.Folder(
+                id = item.folder.id,
+                name = item.folder.name.ifBlank { "Без названия" }
+            )
+            is FolderOrNote.NoteItem -> PendingDeletion.Note(
+                id = item.note.id,
+                name = item.note.title.ifBlank { "Без названия" }
+            )
+        }
+
+        _pendingDeletion.value = pending
+
+        pendingDeleteJob = viewModelScope.launch {
+            delay(15_000L)
+            commitPendingDeletionInternal()
+        }
+    }
+
+    fun undoDelete() {
+        pendingDeleteJob?.cancel()
+        pendingDeleteJob = null
+        _pendingDeletion.value = null
+    }
+
+    fun commitPendingDeletion() {
+        pendingDeleteJob?.cancel()
+        pendingDeleteJob = null
+        commitPendingDeletionInternal()
+    }
+
+    private fun commitPendingDeletionInternal() {
+        val pending = _pendingDeletion.value ?: return
+        _pendingDeletion.value = null
+        viewModelScope.launch {
+            withContext(NonCancellable) {
+                when (pending) {
+                    is PendingDeletion.Folder -> repository.deleteFolder(pending.id)
+                    is PendingDeletion.Note -> repository.deleteNote(pending.id)
+                }
+            }
+        }
+    }
+
     fun deleteFolder(folderId: Long) {
         viewModelScope.launch {
             repository.deleteFolder(folderId)
@@ -91,4 +177,10 @@ class NoteadListViewModel(
             repository.deleteNote(noteId)
         }
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        commitPendingDeletion()
+    }
 }
+

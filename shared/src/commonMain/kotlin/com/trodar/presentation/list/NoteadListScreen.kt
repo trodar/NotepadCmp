@@ -40,6 +40,7 @@ fun NoteadListScreen(
     val currentFolderName by viewModel.currentFolderName.collectAsState()
     val currentTheme by viewModel.currentTheme.collectAsState()
     val parentId by viewModel.parentId.collectAsState()
+    val pendingDeletion by viewModel.pendingDeletion.collectAsState()
 
     LaunchedEffect(isInitialDataLoaded) {
         if (isInitialDataLoaded) {
@@ -47,10 +48,32 @@ fun NoteadListScreen(
         }
     }
 
+    val snackbarHostState = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var showCreateFolderDialog by remember { mutableStateOf(false) }
+    var itemToDelete by remember { mutableStateOf<FolderOrNote?>(null) }
     var newFolderName by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(pendingDeletion) {
+        val pending = pendingDeletion
+        if (pending != null) {
+            val itemLabel = when (pending) {
+                is PendingDeletion.Folder -> "Папка"
+                is PendingDeletion.Note -> "Запись"
+            }
+            val result = snackbarHostState.showSnackbar(
+                message = "$itemLabel \"${pending.name}\" удалена",
+                actionLabel = "Отменить",
+                duration = SnackbarDuration.Indefinite
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDelete()
+            }
+        } else {
+            snackbarHostState.currentSnackbarData?.dismiss()
+        }
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -70,6 +93,16 @@ fun NoteadListScreen(
         }
     ) {
         Scaffold(
+            snackbarHost = {
+                SnackbarHost(hostState = snackbarHostState) { snackbarData ->
+                    Snackbar(
+                        snackbarData = snackbarData,
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        actionColor = MaterialTheme.colorScheme.primary
+                    )
+                }
+            },
             contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
                 TopAppBar(
@@ -91,10 +124,14 @@ fun NoteadListScreen(
                         }
                     },
                     actions = {
-                        IconButton(onClick = { showCreateFolderDialog = true }) {
+                        IconButton(onClick = {
+                            viewModel.commitPendingDeletion()
+                            showCreateFolderDialog = true
+                        }) {
                             Icon(Icons.Default.Folder, contentDescription = "Создать папку")
                         }
                         IconButton(onClick = {
+                            viewModel.commitPendingDeletion()
                             onNavigateToNote(0L, parentId)
                         }) {
                             Icon(Icons.Default.Add, contentDescription = "Создать запись")
@@ -141,7 +178,7 @@ fun NoteadListScreen(
                                         style = MaterialTheme.typography.titleMedium,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    IconButton(onClick = { viewModel.deleteFolder(item.folder.id) }) {
+                                    IconButton(onClick = { itemToDelete = item }) {
                                         ThemedIcon(Icons.Default.Delete, contentDescription = "Удалить папку", type = IconThemeType.ERROR)
                                     }
                                 }
@@ -159,6 +196,7 @@ fun NoteadListScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
+                                        viewModel.commitPendingDeletion()
                                         onNavigateToNote(item.note.id, item.note.folderId)
                                     },
                                 colors = cardColors
@@ -177,7 +215,7 @@ fun NoteadListScreen(
                                             style = MaterialTheme.typography.titleMedium
                                         )
                                     }
-                                    IconButton(onClick = { viewModel.deleteNote(item.note.id) }) {
+                                    IconButton(onClick = { itemToDelete = item }) {
                                         ThemedIcon(Icons.Default.Delete, contentDescription = "Удалить запись", type = IconThemeType.ERROR)
                                     }
                                 }
@@ -212,6 +250,38 @@ fun NoteadListScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { showCreateFolderDialog = false }) {
+                            Text("Отмена")
+                        }
+                    }
+                )
+            }
+
+            if (itemToDelete != null) {
+                val targetItem = itemToDelete
+                val name = when (targetItem) {
+                    is FolderOrNote.FolderItem -> targetItem.folder.name.ifBlank { "Без названия" }
+                    is FolderOrNote.NoteItem -> targetItem.note.title.ifBlank { "Без названия" }
+                    null -> ""
+                }
+                val title = when (targetItem) {
+                    is FolderOrNote.FolderItem -> "Удалить папку?"
+                    is FolderOrNote.NoteItem -> "Удалить запись?"
+                    null -> "Удаление"
+                }
+                AlertDialog(
+                    onDismissRequest = { itemToDelete = null },
+                    title = { Text(title) },
+                    text = { Text("Действительно хотите удалить \"$name\"?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            targetItem?.let { viewModel.deleteItemPending(it) }
+                            itemToDelete = null
+                        }) {
+                            Text("Удалить", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { itemToDelete = null }) {
                             Text("Отмена")
                         }
                     }
