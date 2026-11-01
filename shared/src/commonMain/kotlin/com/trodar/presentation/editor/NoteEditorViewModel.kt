@@ -13,7 +13,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.time.Clock
@@ -32,8 +31,13 @@ class NoteEditorViewModel(
     private val _note = MutableStateFlow<Note?>(null)
     val note: StateFlow<Note?> = _note.asStateFlow()
 
+    private val _isModified = MutableStateFlow(false)
+    val isModified: StateFlow<Boolean> = _isModified.asStateFlow()
+
     val richTextState = RichTextState()
 
+    private var lastSavedContent: String = ""
+    private var isLoaded: Boolean = false
     private var autoSaveJob: Job? = null
 
     init {
@@ -62,20 +66,34 @@ class NoteEditorViewModel(
                 _note.value = newNote
                 richTextState.setHtml("")
             }
+            lastSavedContent = richTextState.toHtml()
+            _isModified.value = false
+            isLoaded = true
         }
     }
 
     private fun observeTextChangesForAutoSave() {
         viewModelScope.launch {
-            snapshotFlow { richTextState.toHtml() }
-                .drop(1)
-                .collect {
+            snapshotFlow {
+                richTextState.annotatedString
+                richTextState.currentSpanStyle
+                richTextState.currentParagraphStyle
+                richTextState.toHtml()
+            }.collect { currentHtml ->
+                if (!isLoaded) return@collect
+
+                if (currentHtml != lastSavedContent) {
+                    _isModified.value = true
                     autoSaveJob?.cancel()
                     autoSaveJob = viewModelScope.launch {
                         delay(1.seconds)
                         saveNow()
                     }
+                } else {
+                    autoSaveJob?.cancel()
+                    _isModified.value = false
                 }
+            }
         }
     }
 
@@ -111,12 +129,16 @@ class NoteEditorViewModel(
                         repository.deleteNote(currentNote.id)
                         _note.value = currentNote.copy(id = 0)
                     }
+                    lastSavedContent = currentContent
+                    _isModified.value = false
                 } else {
                     val savedId = repository.saveNoteWithContent(currentNote, currentContent)
                     val updatedNoteWithText = repository.getNoteWithText(savedId)
                     if (updatedNoteWithText != null) {
                         _note.value = updatedNoteWithText.note
                     }
+                    lastSavedContent = currentContent
+                    _isModified.value = false
                 }
             }
         }

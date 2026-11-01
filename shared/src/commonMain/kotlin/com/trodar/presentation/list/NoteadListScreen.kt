@@ -56,7 +56,9 @@ fun NoteadListScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                modifier = Modifier.width(300.dp)
+                modifier = Modifier.width(300.dp),
+                drawerContainerColor = Color.Transparent,
+                windowInsets = WindowInsets(0.dp)
             ) {
                 SettingsDrawerContent(
                     currentTheme = currentTheme,
