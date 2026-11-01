@@ -1,6 +1,7 @@
 package com.trodar.presentation.list
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.trodar.domain.model.Folder
 import com.trodar.domain.model.FolderOrNote
 import com.trodar.domain.model.Note
 import com.trodar.presentation.settings.SettingsDrawerContent
@@ -51,9 +53,10 @@ fun NoteadListScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    var showCreateFolderDialog by remember { mutableStateOf(false) }
+    var showFolderDialog by remember { mutableStateOf(false) }
+    var folderToRename by remember { mutableStateOf<Folder?>(null) }
+    var folderNameInput by remember { mutableStateOf("") }
     var itemToDelete by remember { mutableStateOf<FolderOrNote?>(null) }
-    var newFolderName by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(pendingDeletion) {
@@ -127,7 +130,9 @@ fun NoteadListScreen(
                     actions = {
                         IconButton(onClick = {
                             viewModel.commitPendingDeletion()
-                            showCreateFolderDialog = true
+                            folderToRename = null
+                            folderNameInput = ""
+                            showFolderDialog = true
                         }) {
                             Icon(Icons.Default.Folder, contentDescription = "Создать папку")
                         }
@@ -161,9 +166,17 @@ fun NoteadListScreen(
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable {
-                                        viewModel.navigateToFolder(item.folder.id, item.folder.name)
-                                    },
+                                    .combinedClickable(
+                                        onClick = {
+                                            viewModel.navigateToFolder(item.folder.id, item.folder.name)
+                                        },
+                                        onLongClick = {
+                                            viewModel.commitPendingDeletion()
+                                            folderToRename = item.folder
+                                            folderNameInput = item.folder.name
+                                            showFolderDialog = true
+                                        }
+                                    ),
                                 colors = defaultCardColors()
                             ) {
                                 Row(
@@ -226,31 +239,47 @@ fun NoteadListScreen(
                 }
             }
 
-            if (showCreateFolderDialog) {
+            if (showFolderDialog) {
+                val isEditing = folderToRename != null
                 AlertDialog(
-                    onDismissRequest = { showCreateFolderDialog = false },
-                    title = { Text("Новая папка") },
+                    onDismissRequest = {
+                        showFolderDialog = false
+                        folderToRename = null
+                        folderNameInput = ""
+                    },
+                    title = { Text(if (isEditing) "Переименовать папку" else "Новая папка") },
                     text = {
                         OutlinedTextField(
-                            value = newFolderName,
-                            onValueChange = { newFolderName = it },
+                            value = folderNameInput,
+                            onValueChange = { folderNameInput = it },
                             label = { Text("Имя папки") },
                             singleLine = true
                         )
                     },
                     confirmButton = {
                         TextButton(onClick = {
-                            if (newFolderName.trim().isNotBlank()) {
-                                viewModel.createFolder(newFolderName)
-                                newFolderName = ""
-                                showCreateFolderDialog = false
+                            val trimmed = folderNameInput.trim()
+                            if (trimmed.isNotBlank()) {
+                                val currentFolder = folderToRename
+                                if (currentFolder != null) {
+                                    viewModel.renameFolder(currentFolder, trimmed)
+                                } else {
+                                    viewModel.createFolder(trimmed)
+                                }
+                                folderNameInput = ""
+                                folderToRename = null
+                                showFolderDialog = false
                             }
                         }) {
-                            Text("Создать")
+                            Text(if (isEditing) "Сохранить" else "Создать")
                         }
                     },
                     dismissButton = {
-                        TextButton(onClick = { showCreateFolderDialog = false }) {
+                        TextButton(onClick = {
+                            showFolderDialog = false
+                            folderToRename = null
+                            folderNameInput = ""
+                        }) {
                             Text("Отмена")
                         }
                     }

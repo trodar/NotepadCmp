@@ -125,6 +125,20 @@ class NoteadListViewModel(
         }
     }
 
+    fun renameFolder(folder: Folder, newName: String) {
+        commitPendingDeletion()
+        val trimmedName = newName.trim()
+        if (trimmedName.isBlank()) return
+        viewModelScope.launch {
+            val now = Clock.System.now().toEpochMilliseconds()
+            val updatedFolder = folder.copy(
+                name = trimmedName,
+                updatedAt = now
+            )
+            repository.upsertFolder(updatedFolder)
+        }
+    }
+
     fun deleteItemPending(item: FolderOrNote) {
         commitPendingDeletion()
 
