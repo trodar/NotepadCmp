@@ -1,8 +1,11 @@
 package com.trodar.presentation.list
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,7 +21,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.trodar.domain.model.Folder
 import com.trodar.domain.model.FolderOrNote
@@ -33,6 +39,7 @@ import com.trodar.presentation.theme.defaultTopAppBarColors
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +68,7 @@ fun NoteadListScreen(
     var showFolderDialog by remember { mutableStateOf(false) }
     var folderToRename by remember { mutableStateOf<Folder?>(null) }
     var folderNameInput by remember { mutableStateOf("") }
+    var folderForActionMenu by remember { mutableStateOf<Folder?>(null) }
     var itemToDelete by remember { mutableStateOf<FolderOrNote?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
@@ -182,76 +190,84 @@ fun NoteadListScreen(
                             is FolderOrNote.NoteItem -> "note_${it.note.id}"
                         }
                     }) { item ->
-                        when (item) {
-                            is FolderOrNote.FolderItem -> {
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .combinedClickable(
-                                            onClick = {
-                                                viewModel.navigateToFolder(item.folder.id, item.folder.name)
-                                            },
-                                            onLongClick = {
-                                                viewModel.commitPendingDeletion()
-                                                folderToRename = item.folder
-                                                folderNameInput = item.folder.name
-                                                showFolderDialog = true
-                                            }
-                                        ),
-                                    colors = defaultCardColors()
-                                ) {
-                                    Row(
+                        SwipeToDeleteItem(
+                            itemKey = when (item) {
+                                is FolderOrNote.FolderItem -> item.folder.id
+                                is FolderOrNote.NoteItem -> item.note.id
+                            },
+                            onDelete = {
+                                viewModel.deleteItemPending(item)
+                            }
+                        ) {
+                            when (item) {
+                                is FolderOrNote.FolderItem -> {
+                                    Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                            .combinedClickable(
+                                                onClick = {
+                                                    viewModel.navigateToFolder(item.folder.id, item.folder.name)
+                                                },
+                                                onLongClick = {
+                                                    viewModel.commitPendingDeletion()
+                                                    folderForActionMenu = item.folder
+                                                }
+                                            ),
+                                        colors = defaultCardColors()
                                     ) {
-                                        ThemedIcon(Icons.Default.Folder, contentDescription = null, type = IconThemeType.PRIMARY)
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        ThemedText(
-                                            text = item.folder.name.ifBlank { "Без названия" },
-                                            style = MaterialTheme.typography.titleMedium,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        IconButton(onClick = { itemToDelete = item }) {
-                                            ThemedIcon(Icons.Default.Delete, contentDescription = "Удалить папку", type = IconThemeType.ERROR)
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            ThemedIcon(Icons.Default.Folder, contentDescription = null, type = IconThemeType.PRIMARY)
+                                            Spacer(modifier = Modifier.width(16.dp))
+                                            ThemedText(
+                                                text = item.folder.name.ifBlank { "Без названия" },
+                                                style = MaterialTheme.typography.titleMedium,
+                                                modifier = Modifier.weight(1f)
+                                            )
                                         }
                                     }
                                 }
-                            }
-                            is FolderOrNote.NoteItem -> {
-                                val noteBgColorInt = item.note.bgColor
-                                val hasCustomBg = noteBgColorInt != 0 && noteBgColorInt != Note.DEFAULT_BG_COLOR
-                                val cardColors = if (hasCustomBg) {
-                                    CardDefaults.cardColors(containerColor = Color(noteBgColorInt))
-                                } else {
-                                    defaultCardColors()
-                                }
-                                Card(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable {
-                                            viewModel.commitPendingDeletion()
-                                            onNavigateToNote(item.note.id, item.note.folderId)
-                                        },
-                                    colors = cardColors
-                                ) {
-                                    Row(
+                                is FolderOrNote.NoteItem -> {
+                                    val noteBgColorInt = item.note.bgColor
+                                    val hasCustomBg = noteBgColorInt != 0 && noteBgColorInt != Note.DEFAULT_BG_COLOR
+                                    val cardColors = if (hasCustomBg) {
+                                        CardDefaults.cardColors(containerColor = Color(noteBgColorInt))
+                                    } else {
+                                        defaultCardColors()
+                                    }
+                                    Card(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                            .combinedClickable(
+                                                onClick = {
+                                                    viewModel.commitPendingDeletion()
+                                                    onNavigateToNote(item.note.id, item.note.folderId)
+                                                },
+                                                onLongClick = {
+                                                    viewModel.commitPendingDeletion()
+                                                    itemToDelete = item
+                                                }
+                                            ),
+                                        colors = cardColors
                                     ) {
-                                        ThemedIcon(Icons.Default.Create, contentDescription = null, type = IconThemeType.SECONDARY)
-                                        Spacer(modifier = Modifier.width(16.dp))
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            ThemedText(
-                                                text = item.note.title.ifBlank { "Без названия" },
-                                                style = MaterialTheme.typography.titleMedium
-                                            )
-                                        }
-                                        IconButton(onClick = { itemToDelete = item }) {
-                                            ThemedIcon(Icons.Default.Delete, contentDescription = "Удалить запись", type = IconThemeType.ERROR)
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            ThemedIcon(Icons.Default.Create, contentDescription = null, type = IconThemeType.SECONDARY)
+                                            Spacer(modifier = Modifier.width(16.dp))
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                ThemedText(
+                                                    text = item.note.title.ifBlank { "Без названия" },
+                                                    style = MaterialTheme.typography.titleMedium
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -259,6 +275,94 @@ fun NoteadListScreen(
                         }
                     }
                 }
+            }
+
+            if (folderForActionMenu != null) {
+                val targetFolder = folderForActionMenu!!
+                AlertDialog(
+                    onDismissRequest = { folderForActionMenu = null },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurface,
+                    title = {
+                        Text(
+                            text = targetFolder.name.ifBlank { "Без названия" },
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Surface(
+                                onClick = {
+                                    folderToRename = targetFolder
+                                    folderNameInput = targetFolder.name
+                                    showFolderDialog = true
+                                    folderForActionMenu = null
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium,
+                                color = Color.Transparent
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp, horizontal = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    ThemedIcon(
+                                        imageVector = Icons.Default.Create,
+                                        contentDescription = null,
+                                        type = IconThemeType.PRIMARY
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(
+                                        text = "Переименовать",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            Surface(
+                                onClick = {
+                                    itemToDelete = FolderOrNote.FolderItem(targetFolder)
+                                    folderForActionMenu = null
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = MaterialTheme.shapes.medium,
+                                color = Color.Transparent
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 12.dp, horizontal = 12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    ThemedIcon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = null,
+                                        type = IconThemeType.ERROR
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(
+                                        text = "Удалить",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {},
+                    dismissButton = {
+                        TextButton(onClick = { folderForActionMenu = null }) {
+                            Text("Отмена", color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                )
             }
 
             if (showFolderDialog) {
@@ -269,13 +373,20 @@ fun NoteadListScreen(
                         folderToRename = null
                         folderNameInput = ""
                     },
-                    title = { Text(if (isEditing) "Переименовать папку" else "Новая папка") },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurface,
+                    title = { Text(if (isEditing) "Переименовать папку" else "Новая папка", style = MaterialTheme.typography.titleLarge) },
                     text = {
                         OutlinedTextField(
                             value = folderNameInput,
                             onValueChange = { folderNameInput = it },
                             label = { Text("Имя папки") },
-                            singleLine = true
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary
+                            )
                         )
                     },
                     confirmButton = {
@@ -293,7 +404,7 @@ fun NoteadListScreen(
                                 showFolderDialog = false
                             }
                         }) {
-                            Text(if (isEditing) "Сохранить" else "Создать")
+                            Text(if (isEditing) "Сохранить" else "Создать", color = MaterialTheme.colorScheme.primary)
                         }
                     },
                     dismissButton = {
@@ -302,7 +413,7 @@ fun NoteadListScreen(
                             folderToRename = null
                             folderNameInput = ""
                         }) {
-                            Text("Отмена")
+                            Text("Отмена", color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 )
@@ -322,8 +433,11 @@ fun NoteadListScreen(
                 }
                 AlertDialog(
                     onDismissRequest = { itemToDelete = null },
-                    title = { Text(title) },
-                    text = { Text("Действительно хотите удалить \"$name\"?") },
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    textContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+                    text = { Text("Действительно хотите удалить \"$name\"?", style = MaterialTheme.typography.bodyMedium) },
                     confirmButton = {
                         TextButton(onClick = {
                             targetItem?.let { viewModel.deleteItemPending(it) }
@@ -334,11 +448,94 @@ fun NoteadListScreen(
                     },
                     dismissButton = {
                         TextButton(onClick = { itemToDelete = null }) {
-                            Text("Отмена")
+                            Text("Отмена", color = MaterialTheme.colorScheme.primary)
                         }
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun SwipeToDeleteItem(
+    itemKey: Any,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit
+) {
+    val density = LocalDensity.current
+    val thresholdPx = remember(density) { with(density) { 140.dp.toPx() } }
+    val coroutineScope = rememberCoroutineScope()
+    val offsetX = remember { Animatable(0f) }
+
+    val currentOffset = offsetX.value
+    val isSwipingLeft = currentOffset < 0f
+    val isPastThreshold = currentOffset <= -thresholdPx
+
+    val backgroundColor = when {
+        isPastThreshold -> MaterialTheme.colorScheme.error.copy(alpha = 0.35f)
+        else -> Color.Transparent
+    }
+    val contentColor = when {
+        isPastThreshold -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+    }
+
+    Box(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .background(backgroundColor, shape = MaterialTheme.shapes.medium)
+                .padding(horizontal = 16.dp),
+            contentAlignment = Alignment.CenterEnd
+        ) {
+            if (isSwipingLeft) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Удалить",
+                        tint = contentColor
+                    )
+                }
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .offset { IntOffset(offsetX.value.roundToInt(), 0) }
+                .pointerInput(itemKey) {
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            val finalOffset = offsetX.value
+                            coroutineScope.launch {
+                                offsetX.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = tween(durationMillis = 200)
+                                )
+                            }
+                            if (finalOffset <= -thresholdPx) {
+                                onDelete()
+                            }
+                        },
+                        onDragCancel = {
+                            coroutineScope.launch {
+                                offsetX.animateTo(0f, animationSpec = tween(durationMillis = 200))
+                            }
+                        },
+                        onHorizontalDrag = { _, dragAmount ->
+                            coroutineScope.launch {
+                                val newOffset = (offsetX.value + dragAmount).coerceAtMost(0f)
+                                offsetX.snapTo(newOffset)
+                            }
+                        }
+                    )
+                }
+        ) {
+            content()
         }
     }
 }
