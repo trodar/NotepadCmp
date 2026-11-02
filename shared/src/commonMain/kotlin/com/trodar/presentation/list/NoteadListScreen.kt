@@ -1,5 +1,6 @@
 package com.trodar.presentation.list
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -17,10 +18,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.trodar.domain.model.Folder
 import com.trodar.domain.model.FolderOrNote
 import com.trodar.domain.model.Note
+import com.trodar.domain.model.getBackgroundResource
 import com.trodar.presentation.settings.SettingsDrawerContent
 import com.trodar.presentation.theme.IconThemeType
 import com.trodar.presentation.theme.ThemedIcon
@@ -28,6 +31,7 @@ import com.trodar.presentation.theme.ThemedText
 import com.trodar.presentation.theme.defaultCardColors
 import com.trodar.presentation.theme.defaultTopAppBarColors
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,6 +46,7 @@ fun NoteadListScreen(
     val canNavigateBack by viewModel.canNavigateBack.collectAsState()
     val currentFolderName by viewModel.currentFolderName.collectAsState()
     val currentTheme by viewModel.currentTheme.collectAsState()
+    val currentBackgroundIndex by viewModel.currentBackgroundIndex.collectAsState()
     val parentId by viewModel.parentId.collectAsState()
     val pendingDeletion by viewModel.pendingDeletion.collectAsState()
 
@@ -79,6 +84,8 @@ fun NoteadListScreen(
         }
     }
 
+    val bgResource = currentTheme.getBackgroundResource(currentBackgroundIndex)
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -89,8 +96,12 @@ fun NoteadListScreen(
             ) {
                 SettingsDrawerContent(
                     currentTheme = currentTheme,
+                    currentBackgroundIndex = currentBackgroundIndex,
                     onSelectTheme = { theme ->
                         viewModel.setTheme(theme)
+                    },
+                    onSelectBackgroundIndex = { index ->
+                        viewModel.setBackgroundIndex(index)
                     }
                 )
             }
@@ -108,6 +119,7 @@ fun NoteadListScreen(
                 }
             },
             contentWindowInsets = WindowInsets.safeDrawing,
+            containerColor = if (bgResource != null) Color.Transparent else MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
                     title = { Text(currentFolderName) },
@@ -146,91 +158,101 @@ fun NoteadListScreen(
                 )
             }
         ) { padding ->
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .consumeWindowInsets(padding)
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 8.dp),
-                contentPadding = padding,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                items(items, key = {
-                    when (it) {
-                        is FolderOrNote.FolderItem -> "folder_${it.folder.id}"
-                        is FolderOrNote.NoteItem -> "note_${it.note.id}"
-                    }
-                }) { item ->
-                    when (item) {
-                        is FolderOrNote.FolderItem -> {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .combinedClickable(
-                                        onClick = {
-                                            viewModel.navigateToFolder(item.folder.id, item.folder.name)
-                                        },
-                                        onLongClick = {
-                                            viewModel.commitPendingDeletion()
-                                            folderToRename = item.folder
-                                            folderNameInput = item.folder.name
-                                            showFolderDialog = true
-                                        }
-                                    ),
-                                colors = defaultCardColors()
-                            ) {
-                                Row(
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (bgResource != null) {
+                    Image(
+                        painter = painterResource(bgResource),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .consumeWindowInsets(padding)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 8.dp),
+                    contentPadding = padding,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(items, key = {
+                        when (it) {
+                            is FolderOrNote.FolderItem -> "folder_${it.folder.id}"
+                            is FolderOrNote.NoteItem -> "note_${it.note.id}"
+                        }
+                    }) { item ->
+                        when (item) {
+                            is FolderOrNote.FolderItem -> {
+                                Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .combinedClickable(
+                                            onClick = {
+                                                viewModel.navigateToFolder(item.folder.id, item.folder.name)
+                                            },
+                                            onLongClick = {
+                                                viewModel.commitPendingDeletion()
+                                                folderToRename = item.folder
+                                                folderNameInput = item.folder.name
+                                                showFolderDialog = true
+                                            }
+                                        ),
+                                    colors = defaultCardColors()
                                 ) {
-                                    ThemedIcon(Icons.Default.Folder, contentDescription = null, type = IconThemeType.PRIMARY)
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    ThemedText(
-                                        text = item.folder.name.ifBlank { "Без названия" },
-                                        style = MaterialTheme.typography.titleMedium,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    IconButton(onClick = { itemToDelete = item }) {
-                                        ThemedIcon(Icons.Default.Delete, contentDescription = "Удалить папку", type = IconThemeType.ERROR)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        ThemedIcon(Icons.Default.Folder, contentDescription = null, type = IconThemeType.PRIMARY)
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        ThemedText(
+                                            text = item.folder.name.ifBlank { "Без названия" },
+                                            style = MaterialTheme.typography.titleMedium,
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        IconButton(onClick = { itemToDelete = item }) {
+                                            ThemedIcon(Icons.Default.Delete, contentDescription = "Удалить папку", type = IconThemeType.ERROR)
+                                        }
                                     }
                                 }
                             }
-                        }
-                        is FolderOrNote.NoteItem -> {
-                            val noteBgColorInt = item.note.bgColor
-                            val hasCustomBg = noteBgColorInt != 0 && noteBgColorInt != Note.DEFAULT_BG_COLOR
-                            val cardColors = if (hasCustomBg) {
-                                CardDefaults.cardColors(containerColor = Color(noteBgColorInt))
-                            } else {
-                                defaultCardColors()
-                            }
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        viewModel.commitPendingDeletion()
-                                        onNavigateToNote(item.note.id, item.note.folderId)
-                                    },
-                                colors = cardColors
-                            ) {
-                                Row(
+                            is FolderOrNote.NoteItem -> {
+                                val noteBgColorInt = item.note.bgColor
+                                val hasCustomBg = noteBgColorInt != 0 && noteBgColorInt != Note.DEFAULT_BG_COLOR
+                                val cardColors = if (hasCustomBg) {
+                                    CardDefaults.cardColors(containerColor = Color(noteBgColorInt))
+                                } else {
+                                    defaultCardColors()
+                                }
+                                Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .clickable {
+                                            viewModel.commitPendingDeletion()
+                                            onNavigateToNote(item.note.id, item.note.folderId)
+                                        },
+                                    colors = cardColors
                                 ) {
-                                    ThemedIcon(Icons.Default.Create, contentDescription = null, type = IconThemeType.SECONDARY)
-                                    Spacer(modifier = Modifier.width(16.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        ThemedText(
-                                            text = item.note.title.ifBlank { "Без названия" },
-                                            style = MaterialTheme.typography.titleMedium
-                                        )
-                                    }
-                                    IconButton(onClick = { itemToDelete = item }) {
-                                        ThemedIcon(Icons.Default.Delete, contentDescription = "Удалить запись", type = IconThemeType.ERROR)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        ThemedIcon(Icons.Default.Create, contentDescription = null, type = IconThemeType.SECONDARY)
+                                        Spacer(modifier = Modifier.width(16.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            ThemedText(
+                                                text = item.note.title.ifBlank { "Без названия" },
+                                                style = MaterialTheme.typography.titleMedium
+                                            )
+                                        }
+                                        IconButton(onClick = { itemToDelete = item }) {
+                                            ThemedIcon(Icons.Default.Delete, contentDescription = "Удалить запись", type = IconThemeType.ERROR)
+                                        }
                                     }
                                 }
                             }

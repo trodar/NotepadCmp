@@ -16,8 +16,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Image as ImageIcon
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
@@ -32,7 +37,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.trodar.domain.model.AppTheme
+import com.trodar.domain.model.getBackgroundResource
 import notead.shared.generated.resources.Res
 import notead.shared.generated.resources.Settings
 import org.jetbrains.compose.resources.painterResource
@@ -40,8 +47,10 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun SettingsDrawerContent(
     currentTheme: AppTheme,
+    modifier: Modifier = Modifier,
+    currentBackgroundIndex: Int = 0,
     onSelectTheme: (AppTheme) -> Unit,
-    modifier: Modifier = Modifier
+    onSelectBackgroundIndex: (Int) -> Unit = {}
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Image(
@@ -54,6 +63,7 @@ fun SettingsDrawerContent(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
                 .padding(vertical = 24.dp)
         ) {
             Row(
@@ -77,7 +87,7 @@ fun SettingsDrawerContent(
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-            // Section
+            // Section 1: Theme
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -97,14 +107,14 @@ fun SettingsDrawerContent(
                 )
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Theme Circles Grid (2 rows of 3 circles, no text)
+            // Theme Circles Grid (2 rows of 3 circles)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 AppTheme.entries.chunked(3).forEach { rowThemes ->
                     Row(
@@ -125,18 +135,106 @@ fun SettingsDrawerContent(
 
                             Box(
                                 modifier = Modifier
-                                    .size(56.dp)
+                                    .size(52.dp)
                                     .background(color = previewColor, shape = CircleShape)
                                     .border(
                                         width = if (isSelected) 3.5.dp else 2.dp,
-                                        color = if (isSelected) Color(0xFFFF9800) else Color(
-                                            0xFF555555
-                                        ),
+                                        color = if (isSelected) Color(0xFFFF9800) else Color(0xFF555555),
                                         shape = CircleShape
                                     )
                                     .clip(CircleShape)
                                     .clickable { onSelectTheme(theme) }
                             )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))
+
+            // Section 2: Background Selection
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ImageIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "Фон списка заметок",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Medium,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Background Thumbnails Grid (0 = No background, 1..6 = Images for current theme)
+            val bgIndices = listOf(0, 1, 2, 3, 4, 5, 6)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                bgIndices.chunked(3).forEach { rowIndices ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        rowIndices.forEach { index ->
+                            val isSelected = currentBackgroundIndex == index
+                            val itemShape = RoundedCornerShape(10.dp)
+
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 68.dp, height = 90.dp)
+                                    .border(
+                                        width = if (isSelected) 3.5.dp else 1.5.dp,
+                                        color = if (isSelected) Color(0xFFFF9800) else Color(0xFF777777),
+                                        shape = itemShape
+                                    )
+                                    .clip(itemShape)
+                                    .background(Color(0xFF2B2B2B))
+                                    .clickable { onSelectBackgroundIndex(index) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (index == 0) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Block,
+                                            contentDescription = "Без фона",
+                                            tint = Color.White.copy(alpha = 0.7f),
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Без фона",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                            color = Color.White.copy(alpha = 0.8f)
+                                        )
+                                    }
+                                } else {
+                                    val bgResource = currentTheme.getBackgroundResource(index)
+                                    if (bgResource != null) {
+                                        Image(
+                                            painter = painterResource(bgResource),
+                                            contentDescription = "Фон $index",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }

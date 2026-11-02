@@ -40,9 +40,18 @@ class NoteadListViewModel(
     val currentTheme: StateFlow<AppTheme> = settingsRepository.appTheme
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.GREEN)
 
+    val currentBackgroundIndex: StateFlow<Int> = settingsRepository.backgroundImageIndex
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     fun setTheme(theme: AppTheme) {
         viewModelScope.launch {
             settingsRepository.setAppTheme(theme)
+        }
+    }
+
+    fun setBackgroundIndex(index: Int) {
+        viewModelScope.launch {
+            settingsRepository.setBackgroundImageIndex(index)
         }
     }
 

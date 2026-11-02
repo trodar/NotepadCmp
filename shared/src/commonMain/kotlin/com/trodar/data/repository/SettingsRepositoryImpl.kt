@@ -23,6 +23,10 @@ class SettingsRepositoryImpl(
         }
     }
 
+    override val backgroundImageIndex: Flow<Int> = dataStore.data.map { prefs ->
+        prefs.backgroundIndex
+    }
+
     override suspend fun setAppTheme(theme: AppTheme) {
         val protoTheme = when (theme) {
             AppTheme.GREEN -> AppThemeProto.THEME_LIGHT
@@ -34,6 +38,12 @@ class SettingsRepositoryImpl(
         }
         dataStore.updateData { currentPrefs ->
             currentPrefs.copy(theme = protoTheme)
+        }
+    }
+
+    override suspend fun setBackgroundImageIndex(index: Int) {
+        dataStore.updateData { currentPrefs ->
+            currentPrefs.copy(backgroundIndex = index)
         }
     }
 }

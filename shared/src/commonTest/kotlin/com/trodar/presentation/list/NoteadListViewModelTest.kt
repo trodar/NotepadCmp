@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -22,9 +23,14 @@ import kotlin.test.assertTrue
 
 class FakeSettingsRepository : SettingsRepository {
     private val _theme = MutableStateFlow(AppTheme.GREEN)
+    private val _bgIndex = MutableStateFlow(0)
     override val appTheme: Flow<AppTheme> = _theme
+    override val backgroundImageIndex: Flow<Int> = _bgIndex
     override suspend fun setAppTheme(theme: AppTheme) {
         _theme.value = theme
+    }
+    override suspend fun setBackgroundImageIndex(index: Int) {
+        _bgIndex.value = index
     }
 }
 
@@ -71,6 +77,7 @@ class NoteadListViewModelTest {
         repository.itemsFlow.value = listOf(folderItem, noteItem)
 
         val viewModel = NoteadListViewModel(repository, settingsRepo)
+        backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
         assertEquals(2, viewModel.items.value.size)
@@ -99,6 +106,7 @@ class NoteadListViewModelTest {
         repository.itemsFlow.value = listOf(folderItem)
 
         val viewModel = NoteadListViewModel(repository, settingsRepo)
+        backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.deleteItemPending(folderItem)
@@ -123,18 +131,18 @@ class NoteadListViewModelTest {
         repository.itemsFlow.value = listOf(noteItem)
 
         val viewModel = NoteadListViewModel(repository, settingsRepo)
+        backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.deleteItemPending(noteItem)
         testDispatcher.scheduler.advanceTimeBy(100)
-
         assertTrue(repository.deletedNotes.isEmpty())
 
         testDispatcher.scheduler.advanceTimeBy(15_000)
         testDispatcher.scheduler.advanceUntilIdle()
 
-        assertNull(viewModel.pendingDeletion.value)
         assertEquals(listOf(2L), repository.deletedNotes)
+        assertNull(viewModel.pendingDeletion.value)
     }
 
     @Test
@@ -147,13 +155,14 @@ class NoteadListViewModelTest {
         repository.itemsFlow.value = listOf(folderItem, noteItem)
 
         val viewModel = NoteadListViewModel(repository, settingsRepo)
+        backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.deleteItemPending(folderItem)
         testDispatcher.scheduler.advanceTimeBy(100)
 
         viewModel.deleteItemPending(noteItem)
-        testDispatcher.scheduler.advanceUntilIdle()
+        testDispatcher.scheduler.advanceTimeBy(100)
 
         assertEquals(listOf(1L), repository.deletedFolders)
         val pending = viewModel.pendingDeletion.value
@@ -170,6 +179,7 @@ class NoteadListViewModelTest {
         repository.itemsFlow.value = listOf(folderItem)
 
         val viewModel = NoteadListViewModel(repository, settingsRepo)
+        backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
         viewModel.deleteItemPending(folderItem)
@@ -180,5 +190,21 @@ class NoteadListViewModelTest {
 
         assertEquals(listOf(1L), repository.deletedFolders)
         assertNull(viewModel.pendingDeletion.value)
+    }
+
+    @Test
+    fun testSetBackgroundIndex() = runTest {
+        val repository = FakeListNoteadRepository()
+        val settingsRepo = FakeSettingsRepository()
+        val viewModel = NoteadListViewModel(repository, settingsRepo)
+        backgroundScope.launch { viewModel.currentBackgroundIndex.collect {} }
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(0, viewModel.currentBackgroundIndex.value)
+
+        viewModel.setBackgroundIndex(3)
+        testDispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(3, viewModel.currentBackgroundIndex.value)
     }
 }

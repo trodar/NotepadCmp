@@ -5,5 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface SettingsRepository {
     val appTheme: Flow<AppTheme>
+    val backgroundImageIndex: Flow<Int>
     suspend fun setAppTheme(theme: AppTheme)
+    suspend fun setBackgroundImageIndex(index: Int)
 }

@@ -25,5 +25,7 @@ enum class AppThemeProto {
 @Serializable
 data class UserPreferences(
     @ProtoNumber(1)
-    val theme: AppThemeProto = AppThemeProto.THEME_LIGHT
+    val theme: AppThemeProto = AppThemeProto.THEME_LIGHT,
+    @ProtoNumber(2)
+    val backgroundIndex: Int = 0
 )
