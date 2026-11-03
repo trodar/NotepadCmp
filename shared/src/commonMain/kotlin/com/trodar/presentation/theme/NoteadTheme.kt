@@ -11,7 +11,7 @@ import com.trodar.domain.model.AppTheme
 private val LightColorScheme = lightColorScheme(
     primary = Color(0xFF2E7D32),
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFE8F5E9),
+    primaryContainer = Color(0xFFD7FFD7),
     onPrimaryContainer = Color(0xFF1B5E20),
     secondary = Color(0xFF388E3C),
     onSecondary = Color.White,
@@ -24,8 +24,8 @@ private val LightColorScheme = lightColorScheme(
 // 2. Темный (Dark)
 private val DarkColorScheme = darkColorScheme(
     primary = Color(0xFF90CAF9),
-    onPrimary = Color(0xFF0D47A1),
-    primaryContainer = Color(0xFF1565C0),
+    onPrimary = Color(0xFF173136),
+    primaryContainer = Color(0xFF1B1C1C),
     onPrimaryContainer = Color(0xFFE3F2FD),
     secondary = Color(0xFFB0BEC5),
     onSecondary = Color(0xFF1C313A),

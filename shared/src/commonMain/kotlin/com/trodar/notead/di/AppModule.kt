@@ -1,8 +1,10 @@
 package com.trodar.notead.di
 
+import com.trodar.data.repository.BackupRepositoryImpl
 import com.trodar.data.repository.NoteadRepositoryImpl
 import com.trodar.database.di.platformDatabaseModule
 import com.trodar.database.di.sharedDatabaseModule
+import com.trodar.domain.repository.BackupRepository
 import com.trodar.domain.repository.NoteadRepository
 import com.trodar.presentation.editor.NoteEditorViewModel
 import com.trodar.presentation.list.NoteadListViewModel
@@ -17,6 +19,7 @@ import org.koin.dsl.module
 
 val appModule = module {
     singleOf(::NoteadRepositoryImpl) bind NoteadRepository::class
+    single<BackupRepository> { BackupRepositoryImpl(get(), get()) }
     viewModelOf(::NoteadListViewModel)
     viewModel { parameters ->
         NoteEditorViewModel(

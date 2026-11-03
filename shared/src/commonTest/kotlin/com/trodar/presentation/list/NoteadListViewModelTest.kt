@@ -55,6 +55,15 @@ class FakeListNoteadRepository : NoteadRepository {
     }
 }
 
+class FakeBackupRepository : com.trodar.domain.repository.BackupRepository {
+    override suspend fun exportBackup(): ByteArray = byteArrayOf()
+    override suspend fun importBackup(bytes: ByteArray): Result<Unit> = Result.success(Unit)
+}
+
+class FakeFileExporter : com.trodar.util.FileExporter {
+    override suspend fun saveBackupToDestination(destinationUriOrPath: String, bytes: ByteArray): String = destinationUriOrPath
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class NoteadListViewModelTest {
 
@@ -76,7 +85,7 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem, noteItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo)
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -105,7 +114,7 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo)
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -130,7 +139,7 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(noteItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo)
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -154,7 +163,7 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem, noteItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo)
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -178,7 +187,7 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo)
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -196,7 +205,7 @@ class NoteadListViewModelTest {
     fun testSetBackgroundIndex() = runTest {
         val repository = FakeListNoteadRepository()
         val settingsRepo = FakeSettingsRepository()
-        val viewModel = NoteadListViewModel(repository, settingsRepo)
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
         backgroundScope.launch { viewModel.currentBackgroundIndex.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 

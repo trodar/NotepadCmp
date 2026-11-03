@@ -15,6 +15,12 @@ interface NoteDao {
     @Query("SELECT * FROM note ORDER BY updated_at DESC")
     fun getAllNotes(): Flow<List<NoteEntity>>
 
+    @Query("SELECT * FROM note")
+    suspend fun getAllNotesList(): List<NoteEntity>
+
+    @Query("SELECT * FROM note_text")
+    suspend fun getAllNoteTextsList(): List<NoteTextEntity>
+
     @Query("SELECT * FROM note WHERE folder_id = :folderId ORDER BY updated_at DESC")
     fun getNotesByFolderId(folderId: Long?): Flow<List<NoteEntity>>
 
@@ -28,7 +34,13 @@ interface NoteDao {
     suspend fun upsertNote(note: NoteEntity): Long
 
     @Upsert
+    suspend fun upsertNotes(notes: List<NoteEntity>)
+
+    @Upsert
     suspend fun upsertNoteText(noteText: NoteTextEntity)
+
+    @Upsert
+    suspend fun upsertNoteTexts(noteTexts: List<NoteTextEntity>)
 
     @Delete
     suspend fun deleteNote(note: NoteEntity)

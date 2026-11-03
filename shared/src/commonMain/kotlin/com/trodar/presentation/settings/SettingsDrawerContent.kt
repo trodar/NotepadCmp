@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +43,8 @@ import com.trodar.domain.model.AppTheme
 import com.trodar.domain.model.getBackgroundResource
 import notead.shared.generated.resources.Res
 import notead.shared.generated.resources.Settings
+import notead.shared.generated.resources.download
+import notead.shared.generated.resources.upload
 import org.jetbrains.compose.resources.painterResource
 
 @Composable
@@ -50,7 +53,9 @@ fun SettingsDrawerContent(
     modifier: Modifier = Modifier,
     currentBackgroundIndex: Int = 0,
     onSelectTheme: (AppTheme) -> Unit,
-    onSelectBackgroundIndex: (Int) -> Unit = {}
+    onSelectBackgroundIndex: (Int) -> Unit = {},
+    onExportBackup: () -> Unit = {},
+    onImportBackup: () -> Unit = {}
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         Image(
@@ -69,7 +74,7 @@ fun SettingsDrawerContent(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -77,12 +82,36 @@ fun SettingsDrawerContent(
                     contentDescription = null,
                     modifier = Modifier.size(28.dp)
                 )
-                Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = "Настройки",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
+                Spacer(modifier = Modifier.weight(1f))
+                IconButton(
+                    onClick = onExportBackup,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.download),
+                        contentDescription = "Экспорт бд и настроек",
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.Black
+                    )
+                }
+                Spacer(modifier = Modifier.width(4.dp))
+                IconButton(
+                    onClick = onImportBackup,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        painter = painterResource(Res.drawable.upload),
+                        contentDescription = "Импорт бд и настроек",
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.Black
+                    )
+                }
             }
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))

@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.trodar.domain.model.Folder
 import com.trodar.domain.model.FolderOrNote
 import com.trodar.domain.model.AppTheme
+import com.trodar.domain.repository.BackupRepository
 import com.trodar.domain.repository.NoteadRepository
 import com.trodar.domain.repository.SettingsRepository
+import com.trodar.util.FileExporter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -34,7 +36,9 @@ sealed interface PendingDeletion {
 @OptIn(ExperimentalCoroutinesApi::class)
 class NoteadListViewModel(
     private val repository: NoteadRepository,
-    private val settingsRepository: SettingsRepository
+    private val settingsRepository: SettingsRepository,
+    private val backupRepository: BackupRepository,
+    private val fileExporter: FileExporter
 ) : ViewModel() {
 
     val currentTheme: StateFlow<AppTheme> = settingsRepository.appTheme
@@ -204,6 +208,23 @@ class NoteadListViewModel(
     fun deleteNote(noteId: Long) {
         viewModelScope.launch {
             repository.deleteNote(noteId)
+        }
+    }
+
+    fun exportBackup(destinationUriOrPath: String, onResult: (Result<String>) -> Unit) {
+        viewModelScope.launch {
+            val result = runCatching {
+                val bytes = backupRepository.exportBackup()
+                fileExporter.saveBackupToDestination(destinationUriOrPath, bytes)
+            }
+            onResult(result)
+        }
+    }
+
+    fun importBackup(bytes: ByteArray, onResult: (Result<Unit>) -> Unit) {
+        viewModelScope.launch {
+            val result = backupRepository.importBackup(bytes)
+            onResult(result)
         }
     }
 

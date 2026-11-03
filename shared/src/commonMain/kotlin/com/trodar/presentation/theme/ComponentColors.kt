@@ -20,7 +20,7 @@ fun defaultTopAppBarColors(): TopAppBarColors = TopAppBarDefaults.topAppBarColor
 
 @Composable
 fun defaultCardColors(): CardColors = CardDefaults.cardColors(
-    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
+    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f),
     contentColor = MaterialTheme.colorScheme.onSurface
 )
 

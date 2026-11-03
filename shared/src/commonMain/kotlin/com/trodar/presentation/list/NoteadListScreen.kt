@@ -36,8 +36,11 @@ import com.trodar.presentation.theme.ThemedIcon
 import com.trodar.presentation.theme.ThemedText
 import com.trodar.presentation.theme.defaultCardColors
 import com.trodar.presentation.theme.defaultTopAppBarColors
+import com.trodar.util.rememberOpenFileLauncher
+import com.trodar.util.rememberSaveFileLauncher
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
+import kotlin.time.Clock
 import org.koin.compose.viewmodel.koinViewModel
 import kotlin.math.roundToInt
 
@@ -94,11 +97,39 @@ fun NoteadListScreen(
 
     val bgResource = currentTheme.getBackgroundResource(currentBackgroundIndex)
 
+    val saveFileLauncher = rememberSaveFileLauncher { destination ->
+        if (!destination.isNullOrBlank()) {
+            viewModel.exportBackup(destination) { result ->
+                coroutineScope.launch {
+                    if (result.isSuccess) {
+                        snackbarHostState.showSnackbar("Резервная копия сохранена")
+                    } else {
+                        snackbarHostState.showSnackbar("Ошибка экспорта: ${result.exceptionOrNull()?.message ?: "Неизвестная ошибка"}")
+                    }
+                }
+            }
+        }
+    }
+
+    val openFileLauncher = rememberOpenFileLauncher { bytes ->
+        if (bytes != null && bytes.isNotEmpty()) {
+            viewModel.importBackup(bytes) { result ->
+                coroutineScope.launch {
+                    if (result.isSuccess) {
+                        snackbarHostState.showSnackbar("Данные успешно восстановлены")
+                    } else {
+                        snackbarHostState.showSnackbar("Ошибка импорта: ${result.exceptionOrNull()?.message ?: "Неизвестная ошибка"}")
+                    }
+                }
+            }
+        }
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet(
-                modifier = Modifier.width(300.dp),
+                modifier = Modifier.width(320.dp),
                 drawerContainerColor = Color.Transparent,
                 windowInsets = WindowInsets(0.dp)
             ) {
@@ -110,6 +141,13 @@ fun NoteadListScreen(
                     },
                     onSelectBackgroundIndex = { index ->
                         viewModel.setBackgroundIndex(index)
+                    },
+                    onExportBackup = {
+                        val timestamp = Clock.System.now().toEpochMilliseconds()
+                        saveFileLauncher.launch("notead_backup_$timestamp.zip")
+                    },
+                    onImportBackup = {
+                        openFileLauncher.launch()
                     }
                 )
             }

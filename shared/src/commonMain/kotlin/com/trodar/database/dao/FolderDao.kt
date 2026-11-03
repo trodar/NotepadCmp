@@ -12,6 +12,9 @@ interface FolderDao {
     @Query("SELECT * FROM folder ORDER BY name ASC")
     fun getAllFolders(): Flow<List<FolderEntity>>
 
+    @Query("SELECT * FROM folder")
+    suspend fun getAllFoldersList(): List<FolderEntity>
+
     @Query("SELECT * FROM folder WHERE parent_id = :parentId ORDER BY name ASC")
     fun getFoldersByParentId(parentId: Long?): Flow<List<FolderEntity>>
 
@@ -23,6 +26,9 @@ interface FolderDao {
 
     @Upsert
     suspend fun upsertFolder(folder: FolderEntity): Long
+
+    @Upsert
+    suspend fun upsertFolders(folders: List<FolderEntity>)
 
     @Delete
     suspend fun deleteFolder(folder: FolderEntity)
