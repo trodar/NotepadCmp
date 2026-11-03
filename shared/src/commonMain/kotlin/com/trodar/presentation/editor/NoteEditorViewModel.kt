@@ -76,12 +76,10 @@ class NoteEditorViewModel(
         viewModelScope.launch {
             snapshotFlow {
                 richTextState.annotatedString
-                richTextState.currentSpanStyle
-                richTextState.currentParagraphStyle
-                richTextState.toHtml()
-            }.collect { currentHtml ->
+            }.collect {
                 if (!isLoaded) return@collect
 
+                val currentHtml = richTextState.toHtml()
                 if (currentHtml != lastSavedContent) {
                     _isModified.value = true
                     autoSaveJob?.cancel()

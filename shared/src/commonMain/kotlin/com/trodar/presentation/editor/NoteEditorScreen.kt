@@ -49,6 +49,17 @@ import com.trodar.presentation.theme.defaultTopAppBarColors
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.windowInsetsPadding
+
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+
+private class TextLayoutHolder {
+    var layoutResult: TextLayoutResult? = null
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NoteEditorScreen(
@@ -60,7 +71,7 @@ fun NoteEditorScreen(
     val note by viewModel.note.collectAsState()
     val isModified by viewModel.isModified.collectAsState()
     val scrollState = rememberScrollState()
-    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val layoutHolder = remember { TextLayoutHolder() }
     val focusRequester = remember { FocusRequester() }
 
     val density = LocalDensity.current
@@ -70,8 +81,10 @@ fun NoteEditorScreen(
     val isDefaultBg = noteBgColorInt == 0 || noteBgColorInt == Note.DEFAULT_BG_COLOR
     val noteBgColor = if (isDefaultBg) MaterialTheme.colorScheme.surface else Color(noteBgColorInt)
 
-    LaunchedEffect(viewModel.richTextState.selection, imeBottom, textLayoutResult) {
-        val layout = textLayoutResult ?: return@LaunchedEffect
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
+
+    LaunchedEffect(viewModel.richTextState.selection, imeBottom) {
+        val layout = layoutHolder.layoutResult ?: return@LaunchedEffect
         val selection = viewModel.richTextState.selection
         if (selection.end >= 0 && selection.end <= layout.layoutInput.text.length) {
             val cursorRect = layout.getCursorRect(selection.end)
@@ -80,45 +93,78 @@ fun NoteEditorScreen(
             val viewportHeight = scrollState.viewportSize
 
             if (viewportHeight > 0) {
-                val extraPadding = with(density) { 24.dp.toPx().toInt() }
-                if (cursorBottom + extraPadding > scrollState.value + viewportHeight) {
-                    val targetScroll = (cursorBottom + extraPadding - viewportHeight).coerceIn(0, scrollState.maxValue)
-                    scrollState.animateScrollTo(targetScroll)
-                } else if (cursorTop - extraPadding < scrollState.value) {
-                    val targetScroll = (cursorTop - extraPadding).coerceIn(0, scrollState.maxValue)
-                    scrollState.animateScrollTo(targetScroll)
+                val cursorHeight = (cursorBottom - cursorTop).coerceAtLeast(0)
+                val defaultPadding = with(density) { 24.dp.toPx().toInt() }
+                val maxPadding = ((viewportHeight - cursorHeight) / 2).coerceAtLeast(0)
+                val extraPadding = defaultPadding.coerceAtMost(maxPadding)
+
+                val currentScroll = scrollState.value
+                val visibleBottom = currentScroll + viewportHeight
+
+                if (cursorBottom + extraPadding > visibleBottom) {
+                    val targetScroll = (cursorBottom + extraPadding - viewportHeight)
+                        .coerceAtMost(cursorTop)
+                        .coerceIn(0, scrollState.maxValue)
+                    if (targetScroll > currentScroll) {
+                        scrollState.animateScrollTo(targetScroll)
+                    }
+                } else if (cursorTop - extraPadding < currentScroll) {
+                    val targetScroll = (cursorTop - extraPadding)
+                        .coerceIn(0, scrollState.maxValue)
+                    if (targetScroll < currentScroll) {
+                        scrollState.animateScrollTo(targetScroll)
+                    }
                 }
             }
         }
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text(note?.title.takeIf { !it.isNullOrEmpty() } ?: "Запись") },
-                    colors = defaultTopAppBarColors(),
-                    navigationIcon = {
-                        IconButton(onClick = {
-                            viewModel.saveNow()
-                            onBack()
-                        }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            viewModel.saveNow()
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Save,
-                                contentDescription = "Сохранить",
-                                tint = if (isModified) Color(0xFF29862D) else Color.Black
-                            )
-                        }
+            TopAppBar(
+                title = { Text(note?.title.takeIf { !it.isNullOrEmpty() } ?: "Запись") },
+                colors = defaultTopAppBarColors(),
+                scrollBehavior = scrollBehavior,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)),
+                navigationIcon = {
+                    IconButton(onClick = {
+                        viewModel.saveNow()
+                        onBack()
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
                     }
-                )
+                },
+                actions = {
+                    IconButton(onClick = {
+                        viewModel.saveNow()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.Save,
+                            contentDescription = "Сохранить",
+                            tint = if (isModified) Color(0xFF29862D) else Color.Black
+                        )
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .consumeWindowInsets(padding)
+        ) {
+            val minHeight = maxHeight
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+            ) {
                 RichTextToolbar(
                     richTextState = viewModel.richTextState,
                     modifier = Modifier
@@ -135,21 +181,7 @@ fun NoteEditorScreen(
                     }
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            }
-        }
-    ) { padding ->
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .consumeWindowInsets(padding)
-        ) {
-            val minHeight = maxHeight
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-            ) {
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -175,9 +207,10 @@ fun NoteEditorScreen(
                             containerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
+                            textColor = MaterialTheme.colorScheme.onSurface,
                         ),
                         onTextLayout = { result ->
-                            textLayoutResult = result
+                            layoutHolder.layoutResult = result
                         }
                     )
                 }
