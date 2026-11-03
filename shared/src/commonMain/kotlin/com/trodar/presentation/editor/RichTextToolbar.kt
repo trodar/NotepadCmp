@@ -38,7 +38,9 @@ fun RichTextToolbar(
     richTextState: RichTextState,
     modifier: Modifier = Modifier,
     noteBgColor: Color = Color.Unspecified,
-    onNoteBgColorSelected: (Color?) -> Unit = {}
+    onNoteBgColorSelected: (Color?) -> Unit = {},
+    isTopBarHidden: Boolean = false,
+    onToggleTopBarHidden: () -> Unit = {}
 ) {
     var showFontSizePicker by remember { mutableStateOf(false) }
     var showTextColorPicker by remember { mutableStateOf(false) }
@@ -69,6 +71,28 @@ fun RichTextToolbar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(2.dp)
     ) {
+        // --- 0. TOGGLE TOP BAR (Скрыть/показать шапку) ---
+        IconButton(
+            onClick = onToggleTopBarHidden,
+            modifier = Modifier.background(
+                if (isTopBarHidden) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                shape = CircleShape
+            )
+        ) {
+            Icon(
+                imageVector = if (isTopBarHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                contentDescription = if (isTopBarHidden) "Показать шапку" else "Скрыть шапку",
+                tint = if (isTopBarHidden) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        VerticalDivider(
+            modifier = Modifier
+                .height(24.dp)
+                .padding(horizontal = 4.dp),
+            color = MaterialTheme.colorScheme.outlineVariant
+        )
+
         // --- 1. FONT SIZE (Размер текста) ---
         Box {
             IconButton(onClick = { showFontSizePicker = true }) {

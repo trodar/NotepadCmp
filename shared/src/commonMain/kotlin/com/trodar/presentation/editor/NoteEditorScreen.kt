@@ -33,6 +33,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -73,6 +74,8 @@ fun NoteEditorScreen(
     val scrollState = rememberScrollState()
     val layoutHolder = remember { TextLayoutHolder() }
     val focusRequester = remember { FocusRequester() }
+
+    var isTopBarPinnedHidden by rememberSaveable { mutableStateOf(false) }
 
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
@@ -124,33 +127,35 @@ fun NoteEditorScreen(
         containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
-            TopAppBar(
-                title = { Text(note?.title.takeIf { !it.isNullOrEmpty() } ?: "Запись") },
-                colors = defaultTopAppBarColors(),
-                scrollBehavior = scrollBehavior,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)),
-                navigationIcon = {
-                    IconButton(onClick = {
-                        viewModel.saveNow()
-                        onBack()
-                    }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+            if (!isTopBarPinnedHidden) {
+                TopAppBar(
+                    title = { Text(note?.title.takeIf { !it.isNullOrEmpty() } ?: "Запись") },
+                    colors = defaultTopAppBarColors(),
+                    scrollBehavior = scrollBehavior,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)),
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            viewModel.saveNow()
+                            onBack()
+                        }) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Назад")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = {
+                            viewModel.saveNow()
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Save,
+                                contentDescription = "Сохранить",
+                                tint = if (isModified) Color(0xFF29862D) else Color.Black
+                            )
+                        }
                     }
-                },
-                actions = {
-                    IconButton(onClick = {
-                        viewModel.saveNow()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Save,
-                            contentDescription = "Сохранить",
-                            tint = if (isModified) Color(0xFF29862D) else Color.Black
-                        )
-                    }
-                }
-            )
+                )
+            }
         }
     ) { padding ->
         BoxWithConstraints(
@@ -178,6 +183,10 @@ fun NoteEditorScreen(
                             selectedColor.toArgb()
                         }
                         viewModel.updateNoteBgColor(colorInt)
+                    },
+                    isTopBarHidden = isTopBarPinnedHidden,
+                    onToggleTopBarHidden = {
+                        isTopBarPinnedHidden = !isTopBarPinnedHidden
                     }
                 )
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
