@@ -57,6 +57,9 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.layout.onGloballyPositioned
+
 private class TextLayoutHolder {
     var layoutResult: TextLayoutResult? = null
 }
@@ -76,6 +79,7 @@ fun NoteEditorScreen(
     val focusRequester = remember { FocusRequester() }
 
     var isTopBarPinnedHidden by rememberSaveable { mutableStateOf(false) }
+    var toolbarHeightPx by remember { mutableIntStateOf(0) }
 
     val density = LocalDensity.current
     val imeBottom = WindowInsets.ime.getBottom(density)
@@ -86,17 +90,27 @@ fun NoteEditorScreen(
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
 
+    LaunchedEffect(isTopBarPinnedHidden) {
+        if (!isTopBarPinnedHidden) {
+            scrollBehavior.state.heightOffset = 0f
+            scrollState.scrollTo(0)
+        }
+    }
+
     LaunchedEffect(viewModel.richTextState.selection, imeBottom) {
         val layout = layoutHolder.layoutResult ?: return@LaunchedEffect
         val selection = viewModel.richTextState.selection
         if (selection.end >= 0 && selection.end <= layout.layoutInput.text.length) {
             val cursorRect = layout.getCursorRect(selection.end)
-            val cursorTop = cursorRect.top.toInt()
-            val cursorBottom = cursorRect.bottom.toInt()
+            val cursorTopInEditor = cursorRect.top.toInt()
+            val cursorBottomInEditor = cursorRect.bottom.toInt()
             val viewportHeight = scrollState.viewportSize
 
             if (viewportHeight > 0) {
-                val cursorHeight = (cursorBottom - cursorTop).coerceAtLeast(0)
+                val cursorTopInColumn = toolbarHeightPx + cursorTopInEditor
+                val cursorBottomInColumn = toolbarHeightPx + cursorBottomInEditor
+
+                val cursorHeight = (cursorBottomInEditor - cursorTopInEditor).coerceAtLeast(0)
                 val defaultPadding = with(density) { 24.dp.toPx().toInt() }
                 val maxPadding = ((viewportHeight - cursorHeight) / 2).coerceAtLeast(0)
                 val extraPadding = defaultPadding.coerceAtMost(maxPadding)
@@ -104,15 +118,17 @@ fun NoteEditorScreen(
                 val currentScroll = scrollState.value
                 val visibleBottom = currentScroll + viewportHeight
 
-                if (cursorBottom + extraPadding > visibleBottom) {
-                    val targetScroll = (cursorBottom + extraPadding - viewportHeight)
-                        .coerceAtMost(cursorTop)
+                if (cursorBottomInColumn + extraPadding > visibleBottom) {
+                    val targetScroll = (cursorBottomInColumn + extraPadding - viewportHeight)
+                        .coerceAtMost(cursorTopInColumn)
                         .coerceIn(0, scrollState.maxValue)
                     if (targetScroll > currentScroll) {
                         scrollState.animateScrollTo(targetScroll)
                     }
-                } else if (cursorTop - extraPadding < currentScroll) {
-                    val targetScroll = (cursorTop - extraPadding)
+                } else if (cursorTopInColumn - extraPadding < currentScroll) {
+                    val minAllowedScroll = if (currentScroll >= toolbarHeightPx) toolbarHeightPx else 0
+                    val targetScroll = (cursorTopInColumn - extraPadding)
+                        .coerceAtLeast(minAllowedScroll)
                         .coerceIn(0, scrollState.maxValue)
                     if (targetScroll < currentScroll) {
                         scrollState.animateScrollTo(targetScroll)
@@ -170,26 +186,34 @@ fun NoteEditorScreen(
                     .fillMaxSize()
                     .verticalScroll(scrollState)
             ) {
-                RichTextToolbar(
-                    richTextState = viewModel.richTextState,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 2.dp),
-                    noteBgColor = if (isDefaultBg) Color.Unspecified else noteBgColor,
-                    onNoteBgColorSelected = { selectedColor ->
-                        val colorInt = if (selectedColor == null || selectedColor == Color.Unspecified) {
-                            0xFFFFFFFF.toInt()
-                        } else {
-                            selectedColor.toArgb()
-                        }
-                        viewModel.updateNoteBgColor(colorInt)
-                    },
-                    isTopBarHidden = isTopBarPinnedHidden,
-                    onToggleTopBarHidden = {
-                        isTopBarPinnedHidden = !isTopBarPinnedHidden
+                Box(
+                    modifier = Modifier.onGloballyPositioned { coordinates ->
+                        toolbarHeightPx = coordinates.size.height
                     }
-                )
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                ) {
+                    Column {
+                        RichTextToolbar(
+                            richTextState = viewModel.richTextState,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp, vertical = 2.dp),
+                            noteBgColor = if (isDefaultBg) Color.Unspecified else noteBgColor,
+                            onNoteBgColorSelected = { selectedColor ->
+                                val colorInt = if (selectedColor == null || selectedColor == Color.Unspecified) {
+                                    0xFFFFFFFF.toInt()
+                                } else {
+                                    selectedColor.toArgb()
+                                }
+                                viewModel.updateNoteBgColor(colorInt)
+                            },
+                            isTopBarHidden = isTopBarPinnedHidden,
+                            onToggleTopBarHidden = {
+                                isTopBarPinnedHidden = !isTopBarPinnedHidden
+                            }
+                        )
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    }
+                }
 
                 Box(
                     modifier = Modifier
