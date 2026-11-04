@@ -39,6 +39,9 @@ import com.trodar.presentation.theme.defaultTopAppBarColors
 import com.trodar.util.rememberOpenFileLauncher
 import com.trodar.util.rememberSaveFileLauncher
 import kotlinx.coroutines.launch
+import notead.shared.generated.resources.Res
+import notead.shared.generated.resources.download
+import notead.shared.generated.resources.flower4
 import org.jetbrains.compose.resources.painterResource
 import kotlin.time.Clock
 import org.koin.compose.viewmodel.koinViewModel
@@ -198,7 +201,11 @@ fun NoteadListScreen(
                             viewModel.commitPendingDeletion()
                             onNavigateToNote(0L, parentId)
                         }) {
-                            Icon(Icons.Default.Add, contentDescription = "Создать запись")
+                            Icon(
+                                painter = painterResource(Res.drawable.flower4),
+                                contentDescription = "Создать запись",
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
                     }
                 )
