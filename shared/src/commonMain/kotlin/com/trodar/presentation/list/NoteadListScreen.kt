@@ -209,7 +209,7 @@ fun NoteadListScreen(
                     Image(
                         painter = painterResource(bgResource),
                         contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.FillBounds,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
