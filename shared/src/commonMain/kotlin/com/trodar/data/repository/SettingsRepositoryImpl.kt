@@ -13,37 +13,50 @@ class SettingsRepositoryImpl(
 ) : SettingsRepository {
 
     override val appTheme: Flow<AppTheme> = dataStore.data.map { prefs ->
-        when (prefs.theme) {
-            AppThemeProto.THEME_LIGHT -> AppTheme.GREEN
-            AppThemeProto.THEME_DARK -> AppTheme.DARK
-            AppThemeProto.THEME_PINK -> AppTheme.PINK
-            AppThemeProto.THEME_PURPLE -> AppTheme.PURPLE
-            AppThemeProto.THEME_BLUE -> AppTheme.BLUE
-            AppThemeProto.THEME_YELLOW -> AppTheme.YELLOW
-        }
+        prefs.theme.toAppTheme()
+    }
+
+    override val selectedBackgroundId: Flow<String> = dataStore.data.map { prefs ->
+        prefs.getBackgroundIdForTheme(prefs.theme)
     }
 
     override val backgroundImageIndex: Flow<Int> = dataStore.data.map { prefs ->
-        prefs.backgroundIndex
+        val id = prefs.getBackgroundIdForTheme(prefs.theme)
+        id.toIntOrNull() ?: 0
     }
 
     override suspend fun setAppTheme(theme: AppTheme) {
-        val protoTheme = when (theme) {
-            AppTheme.GREEN -> AppThemeProto.THEME_LIGHT
-            AppTheme.DARK -> AppThemeProto.THEME_DARK
-            AppTheme.PINK -> AppThemeProto.THEME_PINK
-            AppTheme.PURPLE -> AppThemeProto.THEME_PURPLE
-            AppTheme.BLUE -> AppThemeProto.THEME_BLUE
-            AppTheme.YELLOW -> AppThemeProto.THEME_YELLOW
-        }
+        val protoTheme = theme.toProto()
         dataStore.updateData { currentPrefs ->
             currentPrefs.copy(theme = protoTheme)
         }
     }
 
-    override suspend fun setBackgroundImageIndex(index: Int) {
+    override suspend fun setSelectedBackgroundId(id: String) {
         dataStore.updateData { currentPrefs ->
-            currentPrefs.copy(backgroundIndex = index)
+            currentPrefs.setBackgroundIdForTheme(currentPrefs.theme, id)
         }
     }
+
+    override suspend fun setBackgroundImageIndex(index: Int) {
+        setSelectedBackgroundId(index.toString())
+    }
+}
+
+private fun AppThemeProto.toAppTheme(): AppTheme = when (this) {
+    AppThemeProto.THEME_LIGHT -> AppTheme.GREEN
+    AppThemeProto.THEME_DARK -> AppTheme.DARK
+    AppThemeProto.THEME_PINK -> AppTheme.PINK
+    AppThemeProto.THEME_PURPLE -> AppTheme.PURPLE
+    AppThemeProto.THEME_BLUE -> AppTheme.BLUE
+    AppThemeProto.THEME_YELLOW -> AppTheme.YELLOW
+}
+
+private fun AppTheme.toProto(): AppThemeProto = when (this) {
+    AppTheme.GREEN -> AppThemeProto.THEME_LIGHT
+    AppTheme.DARK -> AppThemeProto.THEME_DARK
+    AppTheme.PINK -> AppThemeProto.THEME_PINK
+    AppTheme.PURPLE -> AppThemeProto.THEME_PURPLE
+    AppTheme.BLUE -> AppThemeProto.THEME_BLUE
+    AppTheme.YELLOW -> AppThemeProto.THEME_YELLOW
 }

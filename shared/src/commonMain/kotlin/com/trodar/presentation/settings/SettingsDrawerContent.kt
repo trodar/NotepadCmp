@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,12 +17,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Image as ImageIcon
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.Settings
@@ -31,6 +37,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,19 +48,55 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.trodar.domain.model.AppTheme
 import com.trodar.domain.model.getBackgroundResource
+import com.trodar.util.toImageBitmap
 import notead.shared.generated.resources.Res
 import notead.shared.generated.resources.Settings
 import notead.shared.generated.resources.download
 import notead.shared.generated.resources.upload
 import org.jetbrains.compose.resources.painterResource
 
+sealed interface BackgroundOption {
+    val id: String
+
+    data object None : BackgroundOption {
+        override val id: String = "0"
+    }
+
+    data class Preset(val index: Int) : BackgroundOption {
+        override val id: String = index.toString()
+    }
+
+    data class Custom(val fileName: String, val bytes: ByteArray) : BackgroundOption {
+        override val id: String = fileName
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Custom) return false
+            if (fileName != other.fileName) return false
+            if (!bytes.contentEquals(other.bytes)) return false
+            return true
+        }
+        override fun hashCode(): Int {
+            var result = fileName.hashCode()
+            result = 31 * result + bytes.contentHashCode()
+            return result
+        }
+    }
+
+    data object AddNew : BackgroundOption {
+        override val id: String = "add_new"
+    }
+}
+
 @Composable
 fun SettingsDrawerContent(
     currentTheme: AppTheme,
     modifier: Modifier = Modifier,
-    currentBackgroundIndex: Int = 0,
+    selectedBackgroundId: String = "0",
+    customBackgrounds: List<Pair<String, ByteArray>> = emptyList(),
     onSelectTheme: (AppTheme) -> Unit,
-    onSelectBackgroundIndex: (Int) -> Unit = {},
+    onSelectBackgroundId: (String) -> Unit = {},
+    onDeleteCustomBackground: (String) -> Unit = {},
+    onPickCustomBackground: () -> Unit = {},
     onExportBackup: () -> Unit = {},
     onImportBackup: () -> Unit = {}
 ) {
@@ -199,26 +242,49 @@ fun SettingsDrawerContent(
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Medium,
                 )
+                Spacer(modifier = Modifier.weight(1f))
+                IconButton(
+                    onClick = onPickCustomBackground,
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddPhotoAlternate,
+                        contentDescription = "Выбрать новый фон",
+                        modifier = Modifier.size(24.dp),
+                        tint = Color.Black
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Background Thumbnails Grid (0 = No background, 1..6 = Images for current theme)
-            val bgIndices = listOf(0, 1, 2, 3, 4, 5, 6)
-            Column(
+            val bgOptions = buildList {
+                add(BackgroundOption.None)
+                for (i in 1..6) {
+                    add(BackgroundOption.Preset(i))
+                }
+                for ((fileName, bytes) in customBackgrounds) {
+                    add(BackgroundOption.Custom(fileName, bytes))
+                }
+                add(BackgroundOption.AddNew)
+            }
+
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(340.dp)
+                    .fillMaxHeight()
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                bgIndices.chunked(3).forEach { rowIndices ->
+                items(bgOptions.chunked(3)) { rowItems ->
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        rowIndices.forEach { index ->
-                            val isSelected = currentBackgroundIndex == index
+                        rowItems.forEach { option ->
+                            val isSelected = selectedBackgroundId == option.id
                             val itemShape = RoundedCornerShape(10.dp)
 
                             Box(
@@ -231,39 +297,96 @@ fun SettingsDrawerContent(
                                     )
                                     .clip(itemShape)
                                     .background(Color(0xFF2B2B2B))
-                                    .clickable { onSelectBackgroundIndex(index) },
+                                    .clickable {
+                                        when (option) {
+                                            is BackgroundOption.AddNew -> onPickCustomBackground()
+                                            else -> onSelectBackgroundId(option.id)
+                                        }
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
-                                if (index == 0) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.Center
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Block,
-                                            contentDescription = "Без фона",
-                                            tint = Color.White.copy(alpha = 0.7f),
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Без фона",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                                            color = Color.White.copy(alpha = 0.8f)
-                                        )
+                                when (option) {
+                                    is BackgroundOption.None -> {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Block,
+                                                contentDescription = "Без фона",
+                                                tint = Color.White.copy(alpha = 0.7f),
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = "Без фона",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                                color = Color.White.copy(alpha = 0.8f)
+                                            )
+                                        }
                                     }
-                                } else {
-                                    val bgResource = currentTheme.getBackgroundResource(index)
-                                    if (bgResource != null) {
+                                    is BackgroundOption.Preset -> {
+                                        val bgResource = currentTheme.getBackgroundResource(option.index)
+                                        if (bgResource != null) {
+                                            Image(
+                                                painter = painterResource(bgResource),
+                                                contentDescription = "Фон ${option.index}",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+                                    }
+                                    is BackgroundOption.Custom -> {
+                                        val bitmap = remember(option.bytes) {
+                                            option.bytes.toImageBitmap()
+                                        }
                                         Image(
-                                            painter = painterResource(bgResource),
-                                            contentDescription = "Фон $index",
+                                            bitmap = bitmap,
+                                            contentDescription = "Свой фон",
                                             contentScale = ContentScale.Crop,
                                             modifier = Modifier.fillMaxSize()
                                         )
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(3.dp)
+                                                .size(20.dp)
+                                                .background(Color.Black.copy(alpha = 0.6f), CircleShape)
+                                                .clickable { onDeleteCustomBackground(option.fileName) },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "Удалить фон",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        }
+                                    }
+                                    is BackgroundOption.AddNew -> {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Add,
+                                                contentDescription = "Добавить фон",
+                                                tint = Color.White.copy(alpha = 0.7f),
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = "Свой фон",
+                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                                color = Color.White.copy(alpha = 0.8f)
+                                            )
+                                        }
                                     }
                                 }
                             }
+                        }
+                        repeat(3 - rowItems.size) {
+                            Spacer(modifier = Modifier.size(width = 68.dp, height = 90.dp))
                         }
                     }
                 }

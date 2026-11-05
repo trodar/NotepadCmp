@@ -8,6 +8,7 @@ import com.trodar.domain.model.AppTheme
 import com.trodar.domain.repository.BackupRepository
 import com.trodar.domain.repository.NoteadRepository
 import com.trodar.domain.repository.SettingsRepository
+import com.trodar.util.CustomBackgroundStorage
 import com.trodar.util.FileExporter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -38,14 +39,33 @@ class NoteadListViewModel(
     private val repository: NoteadRepository,
     private val settingsRepository: SettingsRepository,
     private val backupRepository: BackupRepository,
-    private val fileExporter: FileExporter
+    private val fileExporter: FileExporter,
+    private val customBackgroundStorage: CustomBackgroundStorage
 ) : ViewModel() {
 
     val currentTheme: StateFlow<AppTheme> = settingsRepository.appTheme
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppTheme.GREEN)
 
-    val currentBackgroundIndex: StateFlow<Int> = settingsRepository.backgroundImageIndex
+    val selectedBackgroundId: StateFlow<String> = settingsRepository.selectedBackgroundId
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "0")
+
+    val currentBackgroundIndex: StateFlow<Int> = selectedBackgroundId
+        .map { id -> id.toIntOrNull() ?: 0 }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
+    private val _customBackgroundRefresh = MutableStateFlow(0)
+
+    val customBackgrounds: StateFlow<List<Pair<String, ByteArray>>> = combine(currentTheme, _customBackgroundRefresh) { theme, _ ->
+        customBackgroundStorage.getCustomBackgrounds(theme.name)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val currentCustomBackgroundBytes: StateFlow<ByteArray?> = combine(currentTheme, selectedBackgroundId, _customBackgroundRefresh) { theme, bgId, _ ->
+        if (bgId.startsWith("custom_")) {
+            customBackgroundStorage.getCustomBackground(theme.name, bgId)
+        } else {
+            null
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     fun setTheme(theme: AppTheme) {
         viewModelScope.launch {
@@ -53,9 +73,33 @@ class NoteadListViewModel(
         }
     }
 
-    fun setBackgroundIndex(index: Int) {
+    fun setBackgroundId(id: String) {
         viewModelScope.launch {
-            settingsRepository.setBackgroundImageIndex(index)
+            settingsRepository.setSelectedBackgroundId(id)
+        }
+    }
+
+    fun setBackgroundIndex(index: Int) {
+        setBackgroundId(index.toString())
+    }
+
+    fun saveCustomBackground(bytes: ByteArray) {
+        viewModelScope.launch {
+            val theme = currentTheme.value
+            val fileName = customBackgroundStorage.saveCustomBackground(theme.name, bytes)
+            _customBackgroundRefresh.value += 1
+            setBackgroundId(fileName)
+        }
+    }
+
+    fun deleteCustomBackground(fileName: String) {
+        viewModelScope.launch {
+            val theme = currentTheme.value
+            customBackgroundStorage.deleteCustomBackground(theme.name, fileName)
+            if (selectedBackgroundId.value == fileName) {
+                setBackgroundId("0")
+            }
+            _customBackgroundRefresh.value += 1
         }
     }
 
@@ -224,6 +268,7 @@ class NoteadListViewModel(
     fun importBackup(bytes: ByteArray, onResult: (Result<Unit>) -> Unit) {
         viewModelScope.launch {
             val result = backupRepository.importBackup(bytes)
+            _customBackgroundRefresh.value += 1
             onResult(result)
         }
     }
@@ -233,4 +278,3 @@ class NoteadListViewModel(
         commitPendingDeletion()
     }
 }
-

@@ -80,6 +80,7 @@ import com.trodar.presentation.theme.defaultCardColors
 import com.trodar.presentation.theme.defaultTopAppBarColors
 import com.trodar.util.rememberOpenFileLauncher
 import com.trodar.util.rememberSaveFileLauncher
+import com.trodar.util.toImageBitmap
 import kotlinx.coroutines.launch
 import notead.shared.generated.resources.Res
 import notead.shared.generated.resources.flower4
@@ -100,7 +101,9 @@ fun NoteadListScreen(
     val canNavigateBack by viewModel.canNavigateBack.collectAsState()
     val currentFolderName by viewModel.currentFolderName.collectAsState()
     val currentTheme by viewModel.currentTheme.collectAsState()
-    val currentBackgroundIndex by viewModel.currentBackgroundIndex.collectAsState()
+    val selectedBackgroundId by viewModel.selectedBackgroundId.collectAsState()
+    val customBackgrounds by viewModel.customBackgrounds.collectAsState()
+    val currentCustomBackgroundBytes by viewModel.currentCustomBackgroundBytes.collectAsState()
     val parentId by viewModel.parentId.collectAsState()
     val pendingDeletion by viewModel.pendingDeletion.collectAsState()
 
@@ -139,7 +142,14 @@ fun NoteadListScreen(
         }
     }
 
-    val bgResource = currentTheme.getBackgroundResource(currentBackgroundIndex)
+    val bgIndex = selectedBackgroundId.toIntOrNull()
+    val bgResource = if (bgIndex != null && bgIndex in 1..6) currentTheme.getBackgroundResource(bgIndex) else null
+
+    val openBackgroundLauncher = rememberOpenFileLauncher { bytes ->
+        if (bytes != null && bytes.isNotEmpty()) {
+            viewModel.saveCustomBackground(bytes)
+        }
+    }
 
     val saveFileLauncher = rememberSaveFileLauncher { destination ->
         if (!destination.isNullOrBlank()) {
@@ -179,12 +189,19 @@ fun NoteadListScreen(
             ) {
                 SettingsDrawerContent(
                     currentTheme = currentTheme,
-                    currentBackgroundIndex = currentBackgroundIndex,
+                    selectedBackgroundId = selectedBackgroundId,
+                    customBackgrounds = customBackgrounds,
                     onSelectTheme = { theme ->
                         viewModel.setTheme(theme)
                     },
-                    onSelectBackgroundIndex = { index ->
-                        viewModel.setBackgroundIndex(index)
+                    onSelectBackgroundId = { id ->
+                        viewModel.setBackgroundId(id)
+                    },
+                    onDeleteCustomBackground = { fileName ->
+                        viewModel.deleteCustomBackground(fileName)
+                    },
+                    onPickCustomBackground = {
+                        openBackgroundLauncher.launch()
                     },
                     onExportBackup = {
                         val timestamp = Clock.System.now().toEpochMilliseconds()
@@ -209,7 +226,7 @@ fun NoteadListScreen(
                 }
             },
             contentWindowInsets = WindowInsets.safeDrawing,
-            containerColor = if (bgResource != null) Color.Transparent else MaterialTheme.colorScheme.background,
+            containerColor = if (bgResource != null || currentCustomBackgroundBytes != null) Color.Transparent else MaterialTheme.colorScheme.background,
             topBar = {
                 TopAppBar(
                     title = { Text(currentFolderName) },
@@ -253,11 +270,21 @@ fun NoteadListScreen(
             }
         ) { padding ->
             Box(modifier = Modifier.fillMaxSize()) {
-                if (bgResource != null) {
+                if (currentCustomBackgroundBytes != null) {
+                    val bitmap = remember(currentCustomBackgroundBytes) {
+                        currentCustomBackgroundBytes!!.toImageBitmap()
+                    }
+                    Image(
+                        bitmap = bitmap,
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else if (bgResource != null) {
                     Image(
                         painter = painterResource(bgResource),
                         contentDescription = null,
-                        contentScale = ContentScale.FillBounds,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier.fillMaxSize()
                     )
                 }

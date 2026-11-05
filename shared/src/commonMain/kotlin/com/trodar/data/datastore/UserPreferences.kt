@@ -27,5 +27,24 @@ data class UserPreferences(
     @ProtoNumber(1)
     val theme: AppThemeProto = AppThemeProto.THEME_LIGHT,
     @ProtoNumber(2)
-    val backgroundIndex: Int = 0
-)
+    val backgroundIndex: Int = 0,
+    @ProtoNumber(3)
+    val themeBackgrounds: Map<AppThemeProto, Int> = emptyMap(),
+    @ProtoNumber(4)
+    val themeBackgroundIds: Map<AppThemeProto, String> = emptyMap()
+) {
+    fun getBackgroundIdForTheme(themeProto: AppThemeProto): String {
+        return themeBackgroundIds[themeProto]
+            ?: themeBackgrounds[themeProto]?.toString()
+            ?: backgroundIndex.toString()
+    }
+
+    fun setBackgroundIdForTheme(themeProto: AppThemeProto, id: String): UserPreferences {
+        val intVal = id.toIntOrNull() ?: 0
+        return copy(
+            backgroundIndex = intVal,
+            themeBackgrounds = themeBackgrounds + (themeProto to intVal),
+            themeBackgroundIds = themeBackgroundIds + (themeProto to id)
+        )
+    }
+}

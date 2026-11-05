@@ -6,7 +6,9 @@ import com.trodar.data.model.BackupDatabaseData
 import com.trodar.data.model.toBackupDto
 import com.trodar.data.model.toEntity
 import com.trodar.database.NoteDatabase
+import com.trodar.domain.model.AppTheme
 import com.trodar.domain.repository.BackupRepository
+import com.trodar.util.CustomBackgroundStorage
 import com.trodar.util.ZipEntryData
 import com.trodar.util.unzipEntries
 import com.trodar.util.zipEntries
@@ -23,6 +25,7 @@ import kotlinx.serialization.protobuf.ProtoBuf
 class BackupRepositoryImpl(
     private val database: NoteDatabase,
     private val dataStore: DataStore<UserPreferences>,
+    private val customBackgroundStorage: CustomBackgroundStorage,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : BackupRepository {
 
@@ -51,6 +54,13 @@ class BackupRepositoryImpl(
         val prefs = dataStore.data.first()
         val prefsBytes = ProtoBuf.encodeToByteArray(UserPreferences.serializer(), prefs)
         entries.add(ZipEntryData(USER_PREFERENCES_FILE, prefsBytes))
+
+        for (theme in AppTheme.entries) {
+            val bgs = customBackgroundStorage.getCustomBackgrounds(theme.name)
+            for ((fileName, bytes) in bgs) {
+                entries.add(ZipEntryData("backgrounds/${theme.name}/$fileName", bytes))
+            }
+        }
 
         zipEntries(entries)
     }
@@ -87,6 +97,14 @@ class BackupRepositoryImpl(
             if (prefsEntry != null) {
                 val importedPrefs = ProtoBuf.decodeFromByteArray(UserPreferences.serializer(), prefsEntry.bytes)
                 dataStore.updateData { importedPrefs }
+            }
+
+            entries.filter { it.name.startsWith("backgrounds/") }.forEach { entry ->
+                val parts = entry.name.removePrefix("backgrounds/").split("/", limit = 2)
+                if (parts.size == 2) {
+                    val themeName = parts[0]
+                    customBackgroundStorage.saveCustomBackground(themeName, entry.bytes)
+                }
             }
         }
     }

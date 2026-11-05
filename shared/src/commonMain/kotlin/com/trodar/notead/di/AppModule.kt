@@ -19,7 +19,7 @@ import org.koin.dsl.module
 
 val appModule = module {
     singleOf(::NoteadRepositoryImpl) bind NoteadRepository::class
-    single<BackupRepository> { BackupRepositoryImpl(get(), get()) }
+    single<BackupRepository> { BackupRepositoryImpl(get(), get(), get()) }
     viewModelOf(::NoteadListViewModel)
     viewModel { parameters ->
         NoteEditorViewModel(

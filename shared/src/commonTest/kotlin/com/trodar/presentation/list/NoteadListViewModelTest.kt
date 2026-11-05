@@ -23,14 +23,29 @@ import kotlin.test.assertTrue
 
 class FakeSettingsRepository : SettingsRepository {
     private val _theme = MutableStateFlow(AppTheme.GREEN)
+    private val _themeBackgrounds = mutableMapOf<AppTheme, String>()
+    private val _selectedBgId = MutableStateFlow("0")
     private val _bgIndex = MutableStateFlow(0)
+
     override val appTheme: Flow<AppTheme> = _theme
+    override val selectedBackgroundId: Flow<String> = _selectedBgId
     override val backgroundImageIndex: Flow<Int> = _bgIndex
+
     override suspend fun setAppTheme(theme: AppTheme) {
         _theme.value = theme
+        val id = _themeBackgrounds[theme] ?: "0"
+        _selectedBgId.value = id
+        _bgIndex.value = id.toIntOrNull() ?: 0
     }
+
+    override suspend fun setSelectedBackgroundId(id: String) {
+        _themeBackgrounds[_theme.value] = id
+        _selectedBgId.value = id
+        _bgIndex.value = id.toIntOrNull() ?: 0
+    }
+
     override suspend fun setBackgroundImageIndex(index: Int) {
-        _bgIndex.value = index
+        setSelectedBackgroundId(index.toString())
     }
 }
 
@@ -64,6 +79,29 @@ class FakeFileExporter : com.trodar.util.FileExporter {
     override suspend fun saveBackupToDestination(destinationUriOrPath: String, bytes: ByteArray): String = destinationUriOrPath
 }
 
+class FakeCustomBackgroundStorage : com.trodar.util.CustomBackgroundStorage {
+    private val backgrounds = mutableMapOf<String, MutableMap<String, ByteArray>>()
+
+    override suspend fun saveCustomBackground(themeName: String, bytes: ByteArray): String {
+        val themeMap = backgrounds.getOrPut(themeName) { mutableMapOf() }
+        val fileName = "custom_${kotlin.time.Clock.System.now().toEpochMilliseconds()}_${themeMap.size}.png"
+        themeMap[fileName] = bytes
+        return fileName
+    }
+
+    override suspend fun getCustomBackgrounds(themeName: String): List<Pair<String, ByteArray>> {
+        return backgrounds[themeName]?.map { it.key to it.value } ?: emptyList()
+    }
+
+    override suspend fun getCustomBackground(themeName: String, fileName: String): ByteArray? {
+        return backgrounds[themeName]?.get(fileName)
+    }
+
+    override suspend fun deleteCustomBackground(themeName: String, fileName: String) {
+        backgrounds[themeName]?.remove(fileName)
+    }
+}
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class NoteadListViewModelTest {
 
@@ -85,7 +123,7 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem, noteItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -114,7 +152,7 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -139,7 +177,7 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(noteItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -163,7 +201,7 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem, noteItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -187,7 +225,7 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -205,7 +243,7 @@ class NoteadListViewModelTest {
     fun testSetBackgroundIndex() = runTest {
         val repository = FakeListNoteadRepository()
         val settingsRepo = FakeSettingsRepository()
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter())
+        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
         backgroundScope.launch { viewModel.currentBackgroundIndex.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
