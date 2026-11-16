@@ -1,4 +1,4 @@
-package com.trodar.presentation.editor
+package com.trodar.notead.presentation.editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -46,7 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditorDefaults
 import com.trodar.domain.model.Note
-import com.trodar.presentation.theme.defaultTopAppBarColors
+import com.trodar.notead.presentation.theme.defaultTopAppBarColors
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 

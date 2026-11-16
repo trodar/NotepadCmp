@@ -7,6 +7,8 @@ import com.trodar.domain.model.Note
 import com.trodar.domain.model.NoteWithText
 import com.trodar.domain.repository.NoteadRepository
 import com.trodar.domain.repository.SettingsRepository
+import com.trodar.notead.presentation.list.NoteadListViewModel
+import com.trodar.notead.presentation.list.PendingDeletion
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -123,7 +125,13 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem, noteItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
+        val viewModel = NoteadListViewModel(
+            repository,
+            settingsRepo,
+            FakeBackupRepository(),
+            FakeFileExporter(),
+            FakeCustomBackgroundStorage()
+        )
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -152,7 +160,13 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
+        val viewModel = NoteadListViewModel(
+            repository,
+            settingsRepo,
+            FakeBackupRepository(),
+            FakeFileExporter(),
+            FakeCustomBackgroundStorage()
+        )
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -177,7 +191,13 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(noteItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
+        val viewModel = NoteadListViewModel(
+            repository,
+            settingsRepo,
+            FakeBackupRepository(),
+            FakeFileExporter(),
+            FakeCustomBackgroundStorage()
+        )
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -201,7 +221,13 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem, noteItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
+        val viewModel = NoteadListViewModel(
+            repository,
+            settingsRepo,
+            FakeBackupRepository(),
+            FakeFileExporter(),
+            FakeCustomBackgroundStorage()
+        )
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -225,7 +251,13 @@ class NoteadListViewModelTest {
 
         repository.itemsFlow.value = listOf(folderItem)
 
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
+        val viewModel = NoteadListViewModel(
+            repository,
+            settingsRepo,
+            FakeBackupRepository(),
+            FakeFileExporter(),
+            FakeCustomBackgroundStorage()
+        )
         backgroundScope.launch { viewModel.items.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 
@@ -243,7 +275,13 @@ class NoteadListViewModelTest {
     fun testSetBackgroundIndex() = runTest {
         val repository = FakeListNoteadRepository()
         val settingsRepo = FakeSettingsRepository()
-        val viewModel = NoteadListViewModel(repository, settingsRepo, FakeBackupRepository(), FakeFileExporter(), FakeCustomBackgroundStorage())
+        val viewModel = NoteadListViewModel(
+            repository,
+            settingsRepo,
+            FakeBackupRepository(),
+            FakeFileExporter(),
+            FakeCustomBackgroundStorage()
+        )
         backgroundScope.launch { viewModel.currentBackgroundIndex.collect {} }
         testDispatcher.scheduler.advanceUntilIdle()
 

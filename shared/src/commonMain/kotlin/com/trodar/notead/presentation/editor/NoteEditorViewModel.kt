@@ -1,4 +1,4 @@
-package com.trodar.presentation.editor
+package com.trodar.notead.presentation.editor
 
 import androidx.compose.runtime.snapshotFlow
 import androidx.lifecycle.SavedStateHandle

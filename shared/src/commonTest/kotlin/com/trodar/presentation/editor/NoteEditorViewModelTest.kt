@@ -7,12 +7,12 @@ import com.trodar.domain.model.FolderOrNote
 import com.trodar.domain.model.Note
 import com.trodar.domain.model.NoteWithText
 import com.trodar.domain.repository.NoteadRepository
+import com.trodar.notead.presentation.editor.NoteEditorViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlin.test.BeforeTest

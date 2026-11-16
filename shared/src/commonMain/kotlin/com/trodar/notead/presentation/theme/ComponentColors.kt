@@ -1,4 +1,4 @@
-package com.trodar.presentation.theme
+package com.trodar.notead.presentation.theme
 
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults

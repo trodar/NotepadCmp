@@ -1,4 +1,4 @@
-package com.trodar.presentation.settings
+package com.trodar.notead.presentation.settings
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background

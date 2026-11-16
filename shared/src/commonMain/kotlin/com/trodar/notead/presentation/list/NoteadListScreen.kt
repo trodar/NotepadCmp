@@ -1,4 +1,4 @@
-package com.trodar.presentation.list
+package com.trodar.notead.presentation.list
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -72,12 +72,12 @@ import com.trodar.domain.model.Folder
 import com.trodar.domain.model.FolderOrNote
 import com.trodar.domain.model.Note
 import com.trodar.domain.model.getBackgroundResource
-import com.trodar.presentation.settings.SettingsDrawerContent
-import com.trodar.presentation.theme.IconThemeType
-import com.trodar.presentation.theme.ThemedIcon
-import com.trodar.presentation.theme.ThemedText
-import com.trodar.presentation.theme.defaultCardColors
-import com.trodar.presentation.theme.defaultTopAppBarColors
+import com.trodar.notead.presentation.settings.SettingsDrawerContent
+import com.trodar.notead.presentation.theme.IconThemeType
+import com.trodar.notead.presentation.theme.ThemedIcon
+import com.trodar.notead.presentation.theme.ThemedText
+import com.trodar.notead.presentation.theme.defaultCardColors
+import com.trodar.notead.presentation.theme.defaultTopAppBarColors
 import com.trodar.util.rememberOpenFileLauncher
 import com.trodar.util.rememberSaveFileLauncher
 import com.trodar.util.toImageBitmap
@@ -277,14 +277,14 @@ fun NoteadListScreen(
                     Image(
                         bitmap = bitmap,
                         contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.FillBounds,
                         modifier = Modifier.fillMaxSize()
                     )
                 } else if (bgResource != null) {
                     Image(
                         painter = painterResource(bgResource),
                         contentDescription = null,
-                        contentScale = ContentScale.Crop,
+                        contentScale = ContentScale.FillBounds,
                         modifier = Modifier.fillMaxSize()
                     )
                 }

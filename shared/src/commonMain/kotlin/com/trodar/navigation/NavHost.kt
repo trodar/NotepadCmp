@@ -13,9 +13,9 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.trodar.domain.model.AppTheme
 import com.trodar.domain.repository.SettingsRepository
-import com.trodar.presentation.editor.NoteEditorScreen
-import com.trodar.presentation.list.NoteadListScreen
-import com.trodar.presentation.theme.NoteadTheme
+import com.trodar.notead.presentation.editor.NoteEditorScreen
+import com.trodar.notead.presentation.list.NoteadListScreen
+import com.trodar.notead.presentation.theme.NoteadTheme
 import org.koin.compose.koinInject
 
 @Composable

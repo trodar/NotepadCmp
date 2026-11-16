@@ -16,7 +16,7 @@ interface NoteadDao {
         SELECT id, folder_id AS parentId, title, 0 AS isFolder, created_at AS createdAt, updated_at AS updatedAt 
         FROM note
         WHERE (:parentId IS NULL AND folder_id IS NULL) OR (folder_id = :parentId)
-        ORDER BY isFolder DESC, updatedAt DESC
+        ORDER BY isFolder DESC, name ASC
     """)
     fun getFoldersAndNotes(parentId: Long? = null): Flow<List<FolderOrNoteItem>>
 
@@ -26,7 +26,7 @@ interface NoteadDao {
         UNION ALL
         SELECT id, folder_id AS parentId, title, 0 AS isFolder, created_at AS createdAt, updated_at AS updatedAt 
         FROM note
-        ORDER BY isFolder DESC, updatedAt DESC
+        ORDER BY isFolder DESC, name ASC
     """)
     fun getAllFoldersAndNotes(): Flow<List<FolderOrNoteItem>>
 }

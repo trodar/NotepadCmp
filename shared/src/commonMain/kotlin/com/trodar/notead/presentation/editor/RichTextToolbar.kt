@@ -1,4 +1,4 @@
-package com.trodar.presentation.editor
+package com.trodar.notead.presentation.editor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

@@ -1,4 +1,4 @@
-package com.trodar.presentation.list
+package com.trodar.notead.presentation.list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
